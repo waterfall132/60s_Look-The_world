@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>60s API 聚合数据舱</title>
+<!-- 引入更现代的英文字体 -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ====== 现代化 CSS 变量重置 ====== */
+*{margin:0;padding:0;box-sizing:border-box}
+:root {
+  --bg: #09090b;
+  --card: #18181b;
+  --card-hover: #27272a;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.15);
+  --text: #f4f4f5;
+  --text2: #a1a1aa;
+  --accent: #6366f1;
+  --accent-glow: rgba(99, 102, 241, 0.3);
+  --accent2: #818cf8;
+  --green: #10b981;
+  --red: #ef4444;
+  --orange: #f59e0b;
+  --blue: #3b82f6;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --font-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+}
+
+body { font-family: var(--font-base); background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+
+/* 自定义优美的滚动条 */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #52525b; }
+
+.app { display: flex; min-height: 100vh; }
+
+/* ====== 左侧边栏 (精美磨砂质感) ====== */
+.sidebar { width: 240px; background: rgba(24, 24, 27, 0.5); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-right: 1px solid var(--border); padding: 24px 12px; position: fixed; top: 0; left: 0; bottom: 0; overflow-y: auto; z-index: 100; transition: transform 0.3s ease; }
+.sidebar h1 { font-size: 18px; font-weight: 700; padding: 0 12px 24px; color: #fff; display: flex; align-items: center; gap: 10px; letter-spacing: 0.5px; }
+.sidebar h1 span { font-size: 24px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
+.nav-group { margin-bottom: 20px; }
+.nav-group-title { font-size: 11px; font-weight: 600; color: var(--text2); padding: 0 12px 8px; text-transform: uppercase; letter-spacing: 1.5px; }
+.nav-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; margin-bottom: 2px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); font-size: 14px; font-weight: 500; color: var(--text2); border-radius: var(--radius-sm); }
+.nav-item:hover { background: var(--card-hover); color: var(--text); transform: translateX(4px); }
+.nav-item.active { background: linear-gradient(90deg, rgba(99,102,241,0.15) 0%, rgba(99,102,241,0.05) 100%); color: var(--accent2); box-shadow: inset 3px 0 0 var(--accent); }
+.nav-item .icon { font-size: 16px; width: 24px; text-align: center; }
+
+/* ====== 主内容区 ====== */
+.main { margin-left: 240px; flex: 1; padding: 32px 40px; max-width: 1400px; }
+.header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; flex-wrap: wrap; gap: 16px; position: sticky; top: -32px; z-index: 50; padding-top: 32px; padding-bottom: 16px; background: rgba(9, 9, 11, 0.8); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid transparent; transition: border-color 0.3s; }
+.header.scrolled { border-bottom-color: var(--border); }
+.header h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+.api-base { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text2); }
+.api-base select { background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 13px; outline: none; cursor: pointer; transition: border-color 0.2s; font-family: inherit; }
+.api-base select:focus, .api-base select:hover { border-color: var(--accent2); }
+.refresh-btn { background: var(--card); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 8px 16px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.refresh-btn:hover { border-color: var(--accent); color: var(--accent2); box-shadow: 0 4px 12px rgba(99,102,241,0.15); transform: translateY(-1px); }
+.refresh-btn:active { transform: translateY(0); }
+
+/* ====== 卡片与通用样式 (高级质感) ====== */
+.card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); }
+.card:hover { border-color: var(--border-hover); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2), 0 4px 6px -2px rgba(0,0,0,0.1); }
+.card-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; letter-spacing: -0.3px; }
+
+/* 动画类 */
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+.fade-in { animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+/* 60s 新闻列表 */
+.news-list { list-style: none; }
+.news-list li { padding: 14px 12px; border-bottom: 1px solid var(--border); font-size: 15px; line-height: 1.6; display: flex; gap: 12px; align-items: flex-start; transition: background 0.2s; border-radius: var(--radius-sm); }
+.news-list li:hover { background: rgba(255,255,255,0.02); }
+.news-list li:last-child { border-bottom: none; }
+.news-list li .idx { background: rgba(99,102,241,0.15); color: var(--accent2); min-width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; margin-top: 2px; }
+
+/* 热搜榜单 */
+.hot-list { list-style: none; }
+.hot-item { display: flex; align-items: center; gap: 16px; padding: 14px 12px; border-bottom: 1px solid var(--border); border-radius: var(--radius-sm); transition: background 0.2s; }
+.hot-item:hover { background: rgba(255,255,255,0.02); }
+.hot-item:last-child { border-bottom: none; }
+.hot-rank { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; background: rgba(255,255,255,0.05); color: var(--text2); flex-shrink: 0; transition: transform 0.2s; }
+.hot-item:hover .hot-rank { transform: scale(1.1); }
+.hot-rank.top1 { background: linear-gradient(135deg, #f87171, #ef4444); color: #fff; box-shadow: 0 4px 10px rgba(239,68,68,0.3); }
+.hot-rank.top2 { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #fff; box-shadow: 0 4px 10px rgba(245,158,11,0.3); }
+.hot-rank.top3 { background: linear-gradient(135deg, #60a5fa, #3b82f6); color: #fff; box-shadow: 0 4px 10px rgba(59,130,246,0.3); }
+.hot-info { flex: 1; min-width: 0; }
+.hot-title { font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hot-title a { color: var(--text); text-decoration: none; transition: color 0.2s; }
+.hot-title a:hover { color: var(--accent2); }
+.hot-meta { font-size: 12px; color: var(--text2); margin-top: 4px; }
+.hot-value { font-size: 13px; color: var(--orange); font-weight: 600; flex-shrink: 0; background: rgba(245,158,11,0.1); padding: 4px 10px; border-radius: 20px; }
+
+/* 搜索条 */
+.search-bar { display: flex; gap: 10px; margin-bottom: 24px; position: relative; }
+.search-bar input { flex: 1; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 12px; padding: 14px 20px; color: var(--text); font-size: 15px; outline: none; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
+.search-bar input:focus { border-color: var(--accent); background: rgba(255,255,255,0.05); box-shadow: 0 0 0 3px var(--accent-glow), inset 0 2px 4px rgba(0,0,0,0.2); }
+.search-bar button { background: linear-gradient(135deg, var(--accent2), var(--accent)); color: #fff; border: none; border-radius: 12px; padding: 14px 28px; cursor: pointer; font-size: 15px; font-weight: 600; transition: all 0.3s; box-shadow: 0 4px 12px rgba(99,102,241,0.3); }
+.search-bar button:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(99,102,241,0.4); filter: brightness(1.1); }
+.search-bar button:active { transform: translateY(0); }
+
+/* 天气及网格卡片 */
+.weather-card { text-align: center; padding: 40px 20px; background: linear-gradient(145deg, rgba(30,27,75,0.4) 0%, rgba(15,23,42,0.6) 100%); position: relative; overflow: hidden; }
+.weather-card::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(99,102,241,0.05) 0%, transparent 60%); z-index: 0; pointer-events: none; }
+.weather-card > * { position: relative; z-index: 1; }
+.weather-temp { font-size: 72px; font-weight: 300; letter-spacing: -2px; color: #fff; text-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+.weather-cond { font-size: 20px; font-weight: 500; margin: 4px 0 12px; color: var(--accent2); }
+.weather-loc { font-size: 15px; color: var(--text2); display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.05); padding: 6px 16px; border-radius: 20px; }
+.weather-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 16px; margin-top: 32px; }
+.weather-detail { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 12px; padding: 16px; text-align: center; backdrop-filter: blur(10px); transition: transform 0.2s; }
+.weather-detail:hover { transform: translateY(-2px); border-color: var(--border-hover); }
+.weather-detail .label { font-size: 12px; color: var(--text2); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+.weather-detail .value { font-size: 18px; font-weight: 600; }
+
+.rate-grid, .fuel-grid, .forecast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; }
+.rate-item, .forecast-day, .fuel-item { background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 12px; padding: 16px; text-align: center; transition: all 0.2s; }
+.rate-item:hover, .forecast-day:hover, .fuel-item:hover { background: rgba(255,255,255,0.04); transform: translateY(-2px); border-color: var(--border-hover); }
+
+/* 日期与状态标签 */
+.date-info { font-size: 13px; color: var(--text2); margin-bottom: 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.date-info span { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.05); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+.badge-hot { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+.badge-new { background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+
+/* 加载与报错动画 */
+.loading { text-align: center; padding: 60px 20px; color: var(--text2); font-size: 15px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+@keyframes spin { to { transform: rotate(360deg) } }
+.error { text-align: center; padding: 40px; color: var(--red); background: rgba(239,68,68,0.05); border: 1px solid rgba(239,68,68,0.2); border-radius: var(--radius); margin: 20px 0; font-weight: 500; }
+
+/* 移动端毛玻璃浮动底栏 */
+.mobile-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: rgba(9, 9, 11, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid var(--border); z-index: 200; overflow-x: auto; white-space: nowrap; padding-bottom: env(safe-area-inset-bottom); }
+.mobile-nav::-webkit-scrollbar { display: none; }
+.mobile-nav-inner { display: flex; padding: 12px; gap: 8px; }
+.mob-nav-item { flex-shrink: 0; padding: 10px 16px; font-size: 13px; font-weight: 500; border-radius: 12px; cursor: pointer; color: var(--text2); transition: all 0.2s; background: rgba(255,255,255,0.03); border: 1px solid transparent; }
+.mob-nav-item.active { background: var(--accent-glow); color: var(--accent2); border-color: rgba(99,102,241,0.5); }
+
+/* 响应式适配 */
+@media(max-width: 860px) {
+  .sidebar { transform: translateX(-100%); }
+  .main { margin-left: 0; padding: 20px 16px 100px; }
+  .mobile-nav { display: block; }
+  .header h2 { font-size: 20px; }
+  .rate-grid, .fuel-grid, .forecast-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  .weather-temp { font-size: 56px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+<!-- 左侧精美导航 -->
+<nav class="sidebar">
+  <h1><span>⏰</span> 60s 仪表盘</h1>
+  <div class="nav-group">
+    <div class="nav-group-title">📰 资讯情报</div>
+    <div class="nav-item active" data-panel="news60s"><span class="icon">🌍</span>60秒读世界</div>
+    <div class="nav-item" data-panel="ainews"><span class="icon">🤖</span>AI 前沿资讯</div>
+    <div class="nav-item" data-panel="itnews"><span class="icon">💻</span>IT 科技快报</div>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-title">🔥 全网热榜</div>
+    <div class="nav-item" data-panel="weibo"><span class="icon">📱</span>微博热搜</div>
+    <div class="nav-item" data-panel="douyin"><span class="icon">🎵</span>抖音热榜</div>
+    <div class="nav-item" data-panel="bili"><span class="icon">📺</span>B站排行</div>
+    <div class="nav-item" data-panel="zhihu"><span class="icon">❓</span>知乎话题</div>
+    <div class="nav-item" data-panel="rednote"><span class="icon">📕</span>小红书热点</div>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-title">🛠 实用工具</div>
+    <div class="nav-item" data-panel="weather"><span class="icon">🌤</span>实时天气</div>
+    <div class="nav-item" data-panel="forecast"><span class="icon">📅</span>天气预报</div>
+    <div class="nav-item" data-panel="exchange"><span class="icon">💱</span>全球汇率</div>
+    <div class="nav-item" data-panel="fuel"><span class="icon">⛽</span>全国油价</div>
+  </div>
+</nav>
+
+<!-- 移动端底栏 -->
+<div class="mobile-nav">
+  <div class="mobile-nav-inner">
+    <div class="mob-nav-item active" data-panel="news60s">🌍 60s</div>
+    <div class="mob-nav-item" data-panel="ainews">🤖 AI</div>
+    <div class="mob-nav-item" data-panel="itnews">💻 IT</div>
+    <div class="mob-nav-item" data-panel="weibo">📱 微博</div>
+    <div class="mob-nav-item" data-panel="douyin">🎵 抖音</div>
+    <div class="mob-nav-item" data-panel="bili">📺 B站</div>
+    <div class="mob-nav-item" data-panel="zhihu">❓ 知乎</div>
+    <div class="mob-nav-item" data-panel="rednote">📕 小红书</div>
+    <div class="mob-nav-item" data-panel="weather">🌤 天气</div>
+    <div class="mob-nav-item" data-panel="forecast">📅 预报</div>
+    <div class="mob-nav-item" data-panel="exchange">💱 汇率</div>
+    <div class="mob-nav-item" data-panel="fuel">⛽ 油价</div>
+  </div>
+</div>
+
+<main class="main">
+  <!-- 顶部状态栏 -->
+  <div class="header" id="mainHeader">
+    <h2 id="panelTitle">🌍 每天60秒读懂世界</h2>
+    <div style="display:flex;gap:12px;align-items:center">
+      <div class="api-base">
+        <span>节点:</span>
+        <select id="apiBase">
+          <option value="https://60s.viki.moe">60s.viki.moe (官方主站)</option>
+          <option value="https://60api.09cdn.xyz">60api.09cdn.xyz (备用)</option>
+          <option value="https://60s.zeabur.app">60s.zeabur.app (高速)</option>
+          <option value="https://60s.crystelf.top">60s.crystelf.top</option>
+          <option value="https://cqxx.site">cqxx.site</option>
+          <option value="https://api.yanyua.icu">api.yanyua.icu</option>
+        </select>
+      </div>
+      <button class="refresh-btn" onclick="refreshCurrent()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.59-10.05l5.67-5.67"/></svg>
+        刷新
+      </button>
+    </div>
+  </div>
+
+  <!-- 核心数据渲染区 -->
+  <div id="content"></div>
+</main>
+</div>
+
+<script>
+// ====== 核心逻辑重构 ======
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+const content = $('#content');
+let currentPanel = 'news60s';
+let cache = {};
+
+// 监听滚动给 Header 加阴影边界
+window.addEventListener('scroll', () => {
+  if (window.scrollY > 10) $('#mainHeader').classList.add('scrolled');
+  else $('#mainHeader').classList.remove('scrolled');
+});
+
+function getBase() { return $('#apiBase').value; }
+
+async function api(path) {
+  const url = getBase() + path;
+  if (cache[url] && Date.now() - cache[url].t < 300000) return cache[url].d;
+  const r = await fetch(url);
+  const d = await r.json();
+  if (d.code !== 200) throw new Error(d.message || '网络请求失败');
+  cache[url] = { d: d.data, t: Date.now() };
+  return d.data;
+}
+
+function loading() { content.innerHTML = '<div class="loading"><div class="spinner"></div><div>数据加载中...</div></div>'; }
+function error(msg) { content.innerHTML = `<div class="error fade-in">⚠️ ${msg}</div>`; }
+function renderContent(html) { content.innerHTML = `<div class="fade-in">${html}</div>`; } // 封装渲染，自动加淡入动画
+
+const titles = {
+  news60s:'🌍 每天60秒读懂世界', ainews:'🤖 AI 前沿资讯快报', itnews:'💻 IT之家实时资讯',
+  weibo:'📱 微博实时热搜榜', douyin:'🎵 抖音全网热点榜', bili:'📺 B站全站热门视频',
+  zhihu:'❓ 知乎全站热议话题', rednote:'📕 小红书社区热点',
+  weather:'🌤 实时天气状况', forecast:'📅 未来7天天气预报',
+  exchange:'💱 全球法币实时汇率', fuel:'⛽ 全国实时油价查询'
+};
+
+// 导航栏切换交互
+$$('.nav-item, .mob-nav-item').forEach(el => {
+  el.addEventListener('click', () => {
+    $$('.nav-item, .mob-nav-item').forEach(n => n.classList.remove('active'));
+    const p = el.dataset.panel;
+    $$(`[data-panel="${p}"]`).forEach(n => n.classList.add('active'));
+    currentPanel = p;
+    $('#panelTitle').textContent = titles[p] || '';
+    window.scrollTo({ top: 0, behavior: 'smooth' }); // 切换时回到顶部
+    loadPanel(p);
+  });
+});
+
+function refreshCurrent() { delete cache[getBase()]; cache = {}; loadPanel(currentPanel); }
+
+async function loadPanel(p) {
+  loading();
+  try {
+    switch(p) {
+      case 'news60s': await render60s(); break;
+      case 'ainews': await renderAiNews(); break;
+      case 'itnews': await renderItNews(); break;
+      case 'weibo': await renderHotList('/v2/weibo'); break;
+      case 'douyin': await renderHotList('/v2/douyin'); break;
+      case 'bili': await renderBili(); break;
+      case 'zhihu': await renderZhihu(); break;
+      case 'rednote': await renderRedNote(); break;
+      case 'weather': await renderWeather(); break;
+      case 'forecast': await renderForecast(); break;
+      case 'exchange': await renderExchange(); break;
+      case 'fuel': await renderFuel(); break;
+    }
+  } catch(e) { error(e.message); }
+}
+
+/* ====== 各模块数据渲染方法 ====== */
+
+async function render60s() {
+  const d = await api('/v2/60s?encoding=json');
+  let html = '';
+  if (d.tip) html += `<div class="card" style="border-color:var(--accent); background:rgba(99,102,241,0.05);">💡 <strong>微语：</strong>${d.tip}</div>`;
+  html += `<div class="date-info">
+    <span>📅 ${d.date || ''}</span><span>📆 ${d.day_of_week || ''}</span>
+    <span>🌙 ${d.lunar_date || ''}</span><span>🕐 数据更新: ${d.updated || ''}</span>
+  </div>`;
+  if (d.cover) html += `<div class="card" style="padding:0;overflow:hidden;border:none;"><img src="${d.cover}" referrerpolicy="no-referrer" style="width:100%;display:block;border-radius:var(--radius);" alt="封面" onerror="this.style.display='none'"></div>`;
+  html += '<div class="card"><div class="card-title">📰 今日时事要闻</div><ol class="news-list">';
+  (d.news ||[]).forEach((n, i) => {
+    html += `<li><div class="idx">${i+1}</div><div>${n}</div></li>`;
+  });
+  html += '</ol></div>';
+  renderContent(html);
+}
+
+async function renderAiNews() {
+  const d = await api('/v2/ai-news?encoding=json');
+  let html = `<div class="date-info"><span>📅 ${d.date || '今日'}</span></div>`;
+  const news = d.news ||[];
+  if (!news.length) { html += '<div class="card" style="text-align:center;color:var(--text2)">今日暂无重大 AI 资讯</div>'; }
+  else {
+    html += '<div class="card"><div class="news-list" style="display:flex;flex-direction:column;gap:12px;">';
+    news.forEach(n => {
+      html += `<div class="card" style="margin:0;padding:20px;background:rgba(255,255,255,0.02)">
+        <h4 style="font-size:16px;margin-bottom:8px;line-height:1.4;"><a href="${n.link||'#'}" target="_blank" style="color:var(--text);text-decoration:none;">${n.title}</a></h4>
+        <p style="font-size:14px;color:var(--text2);line-height:1.7;">${n.detail||''}</p>
+        <div style="font-size:12px;color:var(--accent2);margin-top:12px;font-weight:500;">来源: ${n.source||'未知'} · ${n.date||''}</div>
+      </div>`;
+    });
+    html += '</div></div>';
+  }
+  renderContent(html);
+}
+
+async function renderItNews() {
+  const d = await api('/v2/it-news?encoding=json&limit=30');
+  let html = '<div class="card"><div class="card-title">💻 实时 IT 资讯快报</div><div style="display:flex;flex-direction:column;gap:16px;">';
+  (d ||[]).forEach((n) => {
+    html += `<div style="border-bottom:1px solid var(--border);padding-bottom:16px;">
+      <h4 style="font-size:15px;margin-bottom:8px;"><a href="${n.link||'#'}" target="_blank" style="color:var(--text);text-decoration:none;transition:color 0.2s;" onmouseover="this.style.color='var(--accent2)'" onmouseout="this.style.color='var(--text)'">${n.title}</a></h4>
+      <p style="font-size:13px;color:var(--text2);line-height:1.6;">${(n.description||'').slice(0,180)}...</p>
+      <div style="font-size:12px;color:var(--accent2);margin-top:8px;">${n.created||''}</div>
+    </div>`;
+  });
+  html += '</div></div>';
+  renderContent(html);
+}
+
+async function renderHotList(path) {
+  const d = await api(path + '?encoding=json');
+  let html = '<div class="card"><div class="hot-list">';
+  (d ||[]).forEach((item, i) => {
+    const rc = i===0?'top1':i===1?'top2':i===2?'top3':'';
+    const val = item.hot_value ? (item.hot_value > 10000 ? (item.hot_value/10000).toFixed(1)+'万' : item.hot_value) : '';
+    html += `<div class="hot-item">
+      <div class="hot-rank ${rc}">${i+1}</div>
+      <div class="hot-info">
+        <div class="hot-title"><a href="${item.link||'#'}" target="_blank">${item.title}</a></div>
+        ${item.active_time ? `<div class="hot-meta">${item.active_time}</div>` : ''}
+      </div>
+      ${val ? `<div class="hot-value">🔥 ${val}</div>` : ''}
+    </div>`;
+  });
+  html += '</div></div>';
+  renderContent(html);
+}
+
+async function renderBili() {
+  const d = await api('/v2/bili?encoding=json');
+  let html = '<div class="card"><div class="hot-list">';
+  (d ||[]).forEach((item, i) => {
+    const rc = i===0?'top1':i===1?'top2':i===2?'top3':'';
+    html += `<div class="hot-item">
+      <div class="hot-rank ${rc}">${i+1}</div>
+      <div class="hot-info"><div class="hot-title"><a href="${item.link||'#'}" target="_blank">${item.title}</a></div></div>
+    </div>`;
+  });
+  html += '</div></div>';
+  renderContent(html);
+}
+
+async function renderZhihu() {
+  const d = await api('/v2/zhihu?encoding=json');
+  let html = '<div class="card"><div class="hot-list">';
+  (d ||[]).forEach((item, i) => {
+    const rc = i===0?'top1':i===1?'top2':i===2?'top3':'';
+    html += `<div class="hot-item">
+      <div class="hot-rank ${rc}">${i+1}</div>
+      <div class="hot-info">
+        <div class="hot-title"><a href="${item.link||'#'}" target="_blank">${item.title}</a></div>
+        <div class="hot-meta" style="white-space:normal;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${item.detail||''}</div>
+      </div>
+      <div class="hot-value">${item.hot_value_desc||''}</div>
+    </div>`;
+  });
+  html += '</div></div>';
+  renderContent(html);
+}
+
+async function renderRedNote() {
+  const d = await api('/v2/rednote?encoding=json');
+  let html = '<div class="card"><div class="hot-list">';
+  (d ||[]).forEach((item, i) => {
+    const rc = i===0?'top1':i===1?'top2':i===2?'top3':'';
+    const badge = item.word_type==='热'?'<span class="badge badge-hot">热</span>':item.word_type==='新'?'<span class="badge badge-new">新</span>':'';
+    html += `<div class="hot-item">
+      <div class="hot-rank ${rc}">${item.rank||i+1}</div>
+      <div class="hot-info"><div class="hot-title"><a href="${item.link||'#'}" target="_blank">${item.title}</a> ${badge}</div></div>
+      <div class="hot-value" style="background:rgba(239,68,68,0.1);color:var(--red)">🔥 ${item.score||''}</div>
+    </div>`;
+  });
+  html += '</div></div>';
+  renderContent(html);
+}
+
+// ---- 天气 & 生活工具模块 ----
+
+async function renderWeather() {
+  const saved = localStorage.getItem('weather_city') || '北京';
+  content.innerHTML = `<div class="search-bar fade-in">
+    <input id="weatherQ" placeholder="输入城市、区县名称，如：海淀、雨花台" value="${saved}">
+    <button onclick="doWeather()">获取天气</button>
+  </div><div id="weatherResult"></div>`;
+  doWeather();
+}
+
+async function doWeather() {
+  const q = $('#weatherQ').value.trim();
+  if (!q) return;
+  localStorage.setItem('weather_city', q);
+  const box = $('#weatherResult');
+  box.innerHTML = '<div class="loading"><div class="spinner"></div><div>检索中...</div></div>';
+  try {
+    const d = await api(`/v2/weather?query=${encodeURIComponent(q)}&encoding=json`);
+    const loc = d.location || {};
+    const w = d.weather || {};
+    const air = d.air_quality || {};
+    const sun = d.sunrise || {};
+    const indices = d.life_indices || [];
+    const alerts = d.alerts ||[];
+
+    let html = `<div class="fade-in">`;
+    if (alerts.length) {
+      alerts.forEach(a => {
+        html += `<div class="card" style="border-color:var(--orange);background:rgba(245,158,11,.08);color:var(--orange);font-weight:500;">⚠️ ${a.title || ''}: ${a.detail || a.description || ''}</div>`;
+      });
+    }
+
+    html += `<div class="card weather-card">
+  <div class="weather-loc">📍 ${loc.name || q}</div>
+  <div class="weather-temp">${w.temperature ?? '--'}°</div>
+  <div class="weather-cond">${w.condition || '--'}</div>
+  <div class="weather-details">
+    <div class="weather-detail"><div class="label">💧 相对湿度</div><div class="value">${w.humidity ?? '--'}%</div></div>
+    <div class="weather-detail"><div class="label">🌬 风向风力</div><div class="value">${w.wind_direction || '--'} ${w.wind_power || ''}</div></div>
+    <div class="weather-detail"><div class="label">🌡 气压</div><div class="value">${w.pressure ?? '--'} hPa</div></div>
+    <div class="weather-detail"><div class="label">🌧 降水量</div><div class="value">${w.precipitation ?? 0} mm</div></div>
+    <div class="weather-detail"><div class="label">🌅 日出时间</div><div class="value">${sun.sunrise || '--'}</div></div>
+    <div class="weather-detail"><div class="label">🌇 日落时间</div><div class="value">${sun.sunset || '--'}</div></div>
+  </div>
+</div>`;
+
+    if (air.aqi) {
+      const aqColor = air.aqi <= 50 ? 'var(--green)' : air.aqi <= 100 ? 'var(--orange)' : 'var(--red)';
+      html += `<div class="card"><div class="card-title">🌬 空气质量状况</div>
+    <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;background:rgba(255,255,255,0.02);padding:20px;border-radius:12px;">
+      <div style="font-size:42px;font-weight:700;color:${aqColor};text-shadow:0 2px 10px ${aqColor}40;">${air.aqi}</div>
+      <div style="font-size:20px;font-weight:600;color:${aqColor}">${air.quality || ''}</div>
+      <div style="font-size:14px;color:var(--text2);display:flex;gap:16px;">
+        <span>PM2.5: <strong style="color:var(--text)">${air.pm25 ?? '--'}</strong></span>
+        <span>PM10: <strong style="color:var(--text)">${air.pm10 ?? '--'}</strong></span>
+        <span>O₃: <strong style="color:var(--text)">${air.o3 ?? '--'}</strong></span>
+      </div>
+    </div>
+  </div>`;
+    }
+
+    if (indices.length) {
+      html += '<div class="card"><div class="card-title">🏃 生活健康指数</div><div class="rate-grid">';
+      indices.forEach(idx => {
+        html += `<div class="rate-item">
+      <div style="font-size:12px;color:var(--text2);text-transform:uppercase;">${idx.name || ''}</div>
+      <div style="font-size:15px;font-weight:600;margin-top:6px;">${idx.value || idx.level || ''}</div>
+    </div>`;
+      });
+      html += '</div></div>';
+    }
+    html += '</div>';
+    box.innerHTML = html;
+  } catch (e) { box.innerHTML = `<div class="error fade-in">❌ ${e.message}</div>`; }
+}
+
+async function renderForecast() {
+  const saved = localStorage.getItem('weather_city') || '北京';
+  content.innerHTML = `<div class="search-bar fade-in">
+    <input id="forecastQ" placeholder="输入城市名称" value="${saved}">
+    <button onclick="doForecast()">预报查询</button>
+  </div><div id="forecastResult"></div>`;
+  doForecast();
+}
+
+async function doForecast() {
+  const q = $('#forecastQ').value.trim();
+  if (!q) return;
+  localStorage.setItem('weather_city', q);
+  const box = $('#forecastResult');
+  box.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const d = await api(`/v2/weather/forecast?query=${encodeURIComponent(q)}&days=7&encoding=json`);
+    const loc = d.location || {};
+    const daily = d.daily_forecast ||[];
+    const hourly = d.hourly_forecast ||[];
+
+    let html = `<div class="fade-in"><div class="card"><div class="card-title">📍 ${loc.name||q} · 未来 7 天预报</div>
+<div class="forecast-grid">`;
+    daily.forEach(day => {
+      html += `<div class="forecast-day">
+    <div style="font-size:13px;color:var(--text2);margin-bottom:8px;font-weight:500;">${day.date||''}</div>
+    <div style="font-size:16px;margin-bottom:6px;font-weight:600;">${day.condition_day||day.condition||''}</div>
+    <div style="font-size:16px;font-weight:700;"><span style="color:var(--red)">${day.temperature_max??'--'}°</span> <span style="color:var(--text2);font-weight:400;margin:0 4px">/</span> <span style="color:var(--blue)">${day.temperature_min??'--'}°</span></div>
+    <div style="font-size:12px;color:var(--text2);margin-top:8px;background:rgba(255,255,255,0.05);padding:4px;border-radius:6px;">${day.wind_direction_day||''} ${day.wind_power_day||''}</div>
+  </div>`;
+    });
+    html += '</div></div>';
+
+    if (hourly.length) {
+      html += '<div class="card"><div class="card-title">⏰ 未来 24 小时逐时预报</div><div style="overflow-x:auto;padding-bottom:12px;"><div style="display:flex;gap:12px;min-width:max-content;">';
+      hourly.slice(0, 24).forEach(h => {
+        const time = (h.datetime||'').split(' ')[1] || '';
+        html += `<div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;min-width:80px;transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='none'">
+      <div style="font-size:13px;color:var(--text2);font-weight:500;">${time}</div>
+      <div style="font-size:20px;font-weight:700;margin:8px 0;color:var(--accent2);">${h.temperature??'--'}°</div>
+      <div style="font-size:13px;color:var(--text)">${h.condition||''}</div>
+    </div>`;
+      });
+      html += '</div></div></div>';
+    }
+    html += '</div>';
+    box.innerHTML = html;
+  } catch(e) { box.innerHTML = `<div class="error fade-in">❌ ${e.message}</div>`; }
+}
+
+async function renderExchange() {
+  content.innerHTML = `<div class="search-bar fade-in">
+    <input id="exchangeQ" placeholder="基准货币代码，如 CNY、USD、EUR" value="CNY">
+    <button onclick="doExchange()">查询实时汇率</button>
+  </div><div id="exchangeResult"></div>`;
+  doExchange();
+}
+
+async function doExchange() {
+  const q = ($('#exchangeQ').value.trim() || 'CNY').toUpperCase();
+  const box = $('#exchangeResult');
+  box.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const d = await api(`/v2/exchange-rate?currency=${encodeURIComponent(q)}&encoding=json`);
+    const rates = d.rates || [];
+    const major =['USD','EUR','GBP','JPY','KRW','HKD','TWD','SGD','AUD','CAD','CHF','THB','RUB','INR','MYR','PHP','VND','AED','NZD','BRL'];
+    const majorRates = rates.filter(r => major.includes(r.currency) && r.currency !== q);
+    const otherRates = rates.filter(r => !major.includes(r.currency) && r.currency !== q);
+
+    let html = `<div class="fade-in"><div class="date-info"><span>💱 基准法定货币: <strong>${d.base_code||q}</strong></span><span>🕐 实时牌价更新时间: ${d.updated||''}</span></div>`;
+    html += '<div class="card"><div class="card-title">🌍 世界主要货币行情</div><div class="rate-grid">';
+    majorRates.forEach(r => {
+      html += `<div class="rate-item"><div style="font-size:15px;font-weight:700;color:var(--accent2);margin-bottom:6px;">${r.currency}</div><div style="font-size:18px;font-family:monospace;">${Number(r.rate).toFixed(4)}</div></div>`;
+    });
+    html += '</div></div>';
+
+    html += `<div class="card"><div class="card-title">📋 其他国家/地区货币参考 (${otherRates.length})</div>
+  <details><summary style="cursor:pointer;color:var(--text2);font-size:14px;margin-bottom:16px;outline:none;user-select:none;transition:color 0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text2)'">点击展开/折叠全部</summary>
+  <div class="rate-grid">`;
+    otherRates.forEach(r => {
+      html += `<div class="rate-item" style="padding:10px;"><div style="font-size:13px;font-weight:600;color:var(--text2);">${r.currency}</div><div style="font-size:14px;font-family:monospace;margin-top:4px;">${Number(r.rate).toFixed(4)}</div></div>`;
+    });
+    html += '</div></details></div></div>';
+    box.innerHTML = html;
+  } catch(e) { box.innerHTML = `<div class="error fade-in">❌ ${e.message}</div>`; }
+}
+
+async function renderFuel() {
+  const saved = localStorage.getItem('fuel_region') || '北京';
+  content.innerHTML = `<div class="search-bar fade-in">
+    <input id="fuelQ" placeholder="输入省份或城市名称，如：四川、北京" value="${saved}">
+    <button onclick="doFuel()">查询油价</button>
+  </div><div id="fuelResult"></div>`;
+  doFuel();
+}
+
+async function doFuel() {
+  const q = $('#fuelQ').value.trim();
+  if (!q) return;
+  localStorage.setItem('fuel_region', q);
+  const box = $('#fuelResult');
+  box.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const d = await api(`/v2/fuel-price?region=${encodeURIComponent(q)}&encoding=json`);
+    const items = d.items ||[];
+    const trend = d.trend || {};
+
+    let html = `<div class="fade-in"><div class="date-info"><span>📍 测算地区: <strong>${d.region||q}</strong></span><span>🕐 调价窗口更新: ${d.updated||''}</span></div>`;
+
+    if (trend.description) {
+      const tColor = trend.direction === '上调' ? 'var(--red)' : trend.direction === '下调' ? 'var(--green)' : 'var(--text2)';
+      const tBg = trend.direction === '上调' ? 'rgba(239,68,68,0.05)' : trend.direction === '下调' ? 'rgba(34,197,94,0.05)' : 'rgba(255,255,255,0.02)';
+      html += `<div class="card" style="border-color:${tColor}40; background:${tBg}">
+    <div class="card-title">📈 国际原油变动趋势预估</div>
+    <div style="font-size:15px;color:var(--text);line-height:1.8">${trend.description}</div>
+    ${trend.direction ? `<div style="margin-top:12px;font-size:20px;font-weight:700;color:${tColor}">预计国内将${trend.direction} ${trend.change_liter_desc||''}</div>` : ''}
+  </div>`;
+    }
+
+    html += '<div class="fuel-grid">';
+    const fuelColors =['var(--green)', 'var(--accent2)', 'var(--orange)', 'var(--blue)'];
+    items.forEach((item, i) => {
+      html += `<div class="fuel-item">
+    <div style="font-size:14px;color:var(--text2);margin-bottom:8px;font-weight:500;">${item.name}</div>
+    <div style="font-size:32px;font-weight:700;color:${fuelColors[i%4]};text-shadow:0 2px 10px ${fuelColors[i%4]}30;">${item.price}</div>
+    <div style="font-size:12px;color:var(--text2);margin-top:4px;">RMB (元/升)</div>
+  </div>`;
+    });
+    html += '</div></div>';
+    box.innerHTML = html;
+  } catch(e) { box.innerHTML = `<div class="error fade-in">❌ ${e.message}</div>`; }
+}
+
+// 初始化加载
+loadPanel('news60s');
+</script>
+</body>
+</html>
