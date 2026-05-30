@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1a1a1a">
+<title>Chef Assistant · 厨师助手</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f0f;
+    --bg2: #1a1a1a;
+    --bg3: #242424;
+    --bg4: #2e2e2e;
+    --accent: #e8c97a;
+    --accent2: #c4a84f;
+    --text: #f0ede8;
+    --text2: #a09890;
+    --text3: #6a6560;
+    --danger: #e07060;
+    --success: #6db88a;
+    --border: rgba(255,255,255,0.07);
+    --radius: 16px;
+    --radius-sm: 10px;
+    --font-head: 'Syne', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--font-body); }
+
+  /* Layout */
+  #app { display: flex; flex-direction: column; height: 100vh; max-width: 480px; margin: 0 auto; position: relative; overflow: hidden; }
+
+  /* Header */
+  .header { padding: 16px 20px 0; flex-shrink: 0; }
+  .header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .logo { font-family: var(--font-head); font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+  .logo span { color: var(--accent); }
+  .header-sub { font-size: 11px; color: var(--text3); letter-spacing: 1px; text-transform: uppercase; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; background: var(--bg2); border-radius: 14px; padding: 4px; flex-shrink: 0; margin: 0 20px 16px; }
+  .tab { flex: 1; padding: 10px 6px; border-radius: 10px; border: none; background: none; color: var(--text3); font-family: var(--font-body); font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .tab svg { width: 18px; height: 18px; stroke-width: 1.8; }
+  .tab.active { background: var(--bg4); color: var(--accent); }
+
+  /* Scroll area */
+  .scroll { flex: 1; overflow-y: auto; padding: 0 20px 80px; scrollbar-width: none; }
+  .scroll::-webkit-scrollbar { display: none; }
+
+  /* Page */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* Section title */
+  .section-title { font-family: var(--font-head); font-size: 22px; font-weight: 700; margin-bottom: 16px; letter-spacing: -0.5px; }
+  .section-title span { color: var(--accent); }
+
+  /* FAB */
+  .fab { position: absolute; bottom: 90px; right: 20px; width: 52px; height: 52px; border-radius: 50%; background: var(--accent); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(232,201,122,0.35); transition: transform 0.15s; z-index: 50; }
+  .fab:active { transform: scale(0.93); }
+  .fab svg { width: 22px; height: 22px; stroke: #0f0f0f; stroke-width: 2.2; }
+
+  /* Search */
+  .search-wrap { position: relative; margin-bottom: 16px; }
+  .search-wrap svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; stroke: var(--text3); stroke-width: 2; }
+  .search-input { width: 100%; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 11px 14px 11px 40px; color: var(--text); font-family: var(--font-body); font-size: 14px; outline: none; transition: border-color 0.2s; }
+  .search-input:focus { border-color: rgba(232,201,122,0.3); }
+  .search-input::placeholder { color: var(--text3); }
+
+  /* Ingredient cards */
+  .ingr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .ingr-card { background: var(--bg2); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; cursor: pointer; transition: border-color 0.2s; }
+  .ingr-card:active { border-color: rgba(232,201,122,0.3); }
+  .ingr-img { width: 100%; height: 110px; object-fit: cover; background: var(--bg3); display: flex; align-items: center; justify-content: center; }
+  .ingr-img-placeholder { width: 100%; height: 110px; background: var(--bg3); display: flex; align-items: center; justify-content: center; font-size: 36px; }
+  .ingr-body { padding: 10px 12px; }
+  .ingr-en { font-family: var(--font-head); font-size: 13px; font-weight: 600; color: var(--accent); margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .ingr-cn { font-size: 14px; font-weight: 500; }
+  .ingr-note { font-size: 11px; color: var(--text3); margin-top: 4px; line-height: 1.4; }
+  .ingr-tag { display: inline-block; font-size: 10px; background: var(--bg4); color: var(--text2); padding: 2px 7px; border-radius: 20px; margin-top: 6px; }
+
+  /* Recipe cards */
+  .recipe-list { display: flex; flex-direction: column; gap: 12px; }
+  .recipe-card { background: var(--bg2); border-radius: var(--radius); border: 1px solid var(--border); padding: 16px; cursor: pointer; transition: border-color 0.2s; }
+  .recipe-card:active { border-color: rgba(232,201,122,0.3); }
+  .recipe-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .recipe-name { font-family: var(--font-head); font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
+  .recipe-name-en { font-size: 12px; color: var(--accent); font-weight: 400; margin-top: 2px; }
+  .recipe-badge { font-size: 10px; background: var(--bg3); color: var(--text2); padding: 4px 10px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; }
+  .recipe-steps-preview { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); display: flex; gap: 6px; flex-wrap: wrap; }
+  .step-chip { font-size: 11px; color: var(--text3); background: var(--bg3); padding: 3px 8px; border-radius: 6px; }
+  .recipe-actions { margin-top: 12px; display: flex; gap: 8px; }
+  .btn-sm { padding: 7px 14px; border-radius: 8px; border: 1px solid var(--border); background: none; color: var(--text2); font-family: var(--font-body); font-size: 12px; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 5px; }
+  .btn-sm svg { width: 13px; height: 13px; stroke-width: 2; }
+  .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-sm.danger:hover { border-color: var(--danger); color: var(--danger); }
+
+  /* Modal */
+  .modal-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; display: flex; flex-direction: column; justify-content: flex-end; opacity: 0; pointer-events: none; transition: opacity 0.25s; backdrop-filter: blur(4px); }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal { background: var(--bg2); border-radius: 24px 24px 0 0; padding: 24px 20px 40px; max-height: 90vh; overflow-y: auto; transform: translateY(40px); transition: transform 0.25s cubic-bezier(0.34,1.2,0.64,1); scrollbar-width: none; }
+  .modal::-webkit-scrollbar { display: none; }
+  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal-handle { width: 36px; height: 4px; background: var(--bg4); border-radius: 2px; margin: 0 auto 20px; }
+  .modal-title { font-family: var(--font-head); font-size: 20px; font-weight: 700; margin-bottom: 20px; letter-spacing: -0.5px; }
+
+  /* Form */
+  .form-group { margin-bottom: 16px; }
+  .form-label { font-size: 11px; color: var(--text3); letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 6px; display: block; }
+  .form-input, .form-textarea, .form-select { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 11px 14px; color: var(--text); font-family: var(--font-body); font-size: 14px; outline: none; transition: border-color 0.2s; }
+  .form-input:focus, .form-textarea:focus { border-color: rgba(232,201,122,0.4); }
+  .form-textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+  .form-select { appearance: none; cursor: pointer; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .btn-primary { width: 100%; padding: 14px; background: var(--accent); color: #0f0f0f; border: none; border-radius: var(--radius-sm); font-family: var(--font-head); font-size: 15px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; margin-top: 8px; }
+  .btn-primary:active { opacity: 0.85; }
+  .btn-secondary { width: 100%; padding: 13px; background: none; color: var(--text2); border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: var(--font-body); font-size: 14px; cursor: pointer; transition: all 0.15s; margin-top: 8px; }
+  .btn-secondary:hover { border-color: var(--text2); }
+
+  /* Upload area */
+  .upload-area { border: 1.5px dashed rgba(232,201,122,0.3); border-radius: var(--radius); padding: 28px 20px; text-align: center; cursor: pointer; transition: border-color 0.2s; position: relative; overflow: hidden; }
+  .upload-area:hover { border-color: rgba(232,201,122,0.6); }
+  .upload-area input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .upload-area-icon { font-size: 32px; margin-bottom: 8px; }
+  .upload-area-text { font-size: 13px; color: var(--text2); }
+  .upload-area-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+  .upload-preview { width: 100%; max-height: 160px; object-fit: cover; border-radius: var(--radius-sm); display: none; }
+
+  /* AI Result */
+  .ai-result { background: rgba(232,201,122,0.08); border: 1px solid rgba(232,201,122,0.2); border-radius: var(--radius-sm); padding: 14px; margin-top: 12px; display: none; }
+  .ai-result-label { font-size: 10px; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .ai-result-en { font-family: var(--font-head); font-size: 18px; font-weight: 700; color: var(--accent); }
+  .ai-result-cn { font-size: 14px; color: var(--text2); margin-top: 2px; }
+  .ai-result-desc { font-size: 12px; color: var(--text3); margin-top: 6px; line-height: 1.5; }
+  .loading-dots { display: inline-flex; gap: 4px; align-items: center; }
+  .loading-dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: dot 1.2s infinite; }
+  .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes dot { 0%,80%,100% { opacity: 0.2; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1); } }
+
+  /* Steps */
+  .steps-list { list-style: none; }
+  .step-item { display: flex; gap: 14px; margin-bottom: 12px; align-items: flex-start; }
+  .step-num { width: 28px; height: 28px; border-radius: 50%; background: var(--bg3); border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; font-family: var(--font-head); font-size: 12px; font-weight: 700; color: var(--accent); flex-shrink: 0; }
+  .step-text-wrap { flex: 1; }
+  .step-text { font-size: 14px; line-height: 1.6; color: var(--text2); background: var(--bg3); border-radius: var(--radius-sm); padding: 10px 12px; }
+  .step-actions { display: flex; gap: 6px; margin-top: 5px; }
+  .step-btn { padding: 3px 8px; font-size: 11px; border: 1px solid var(--border); background: none; color: var(--text3); border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 4px; font-family: var(--font-body); }
+  .step-btn svg { width: 11px; height: 11px; stroke-width: 2; }
+  .step-add { display: flex; gap: 8px; margin-top: 8px; }
+  .step-add input { flex: 1; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; color: var(--text); font-family: var(--font-body); font-size: 13px; outline: none; }
+  .step-add input:focus { border-color: rgba(232,201,122,0.3); }
+  .step-add button { padding: 10px 16px; background: var(--accent); border: none; border-radius: var(--radius-sm); color: #0f0f0f; font-family: var(--font-head); font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+
+  /* Detail view */
+  .detail-back { display: flex; align-items: center; gap: 8px; color: var(--text3); font-size: 13px; cursor: pointer; margin-bottom: 20px; background: none; border: none; padding: 0; font-family: var(--font-body); }
+  .detail-back svg { width: 16px; height: 16px; stroke: var(--text3); stroke-width: 2; }
+  .detail-title { font-family: var(--font-head); font-size: 26px; font-weight: 800; letter-spacing: -1px; }
+  .detail-title-en { color: var(--accent); font-size: 14px; margin-top: 4px; margin-bottom: 20px; font-weight: 400; }
+  .detail-meta { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .meta-chip { font-size: 12px; background: var(--bg3); color: var(--text2); padding: 5px 12px; border-radius: 20px; display: flex; align-items: center; gap: 5px; }
+  .meta-chip svg { width: 13px; height: 13px; stroke-width: 1.8; }
+  .section-head { font-family: var(--font-head); font-size: 13px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 1.5px; margin: 20px 0 12px; }
+  .ingr-detail-list { display: flex; flex-direction: column; gap: 8px; }
+  .ingr-detail-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: var(--bg2); border-radius: var(--radius-sm); }
+  .ingr-detail-name { font-size: 14px; }
+  .ingr-detail-amount { font-size: 13px; color: var(--accent); font-weight: 500; }
+  .step-detail-item { display: flex; gap: 16px; margin-bottom: 16px; }
+  .step-detail-num { font-family: var(--font-head); font-size: 32px; font-weight: 800; color: rgba(232,201,122,0.2); flex-shrink: 0; line-height: 1; min-width: 36px; }
+  .step-detail-text { font-size: 15px; line-height: 1.7; padding-top: 4px; }
+  .step-detail-tip { font-size: 12px; color: var(--text3); margin-top: 4px; }
+
+  /* Empty state */
+  .empty { text-align: center; padding: 40px 20px; }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-title { font-family: var(--font-head); font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .empty-sub { font-size: 13px; color: var(--text3); }
+
+  /* API Key */
+  .api-key-banner { background: rgba(232,201,122,0.08); border: 1px solid rgba(232,201,122,0.2); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+  .api-key-banner svg { width: 18px; height: 18px; stroke: var(--accent); stroke-width: 1.8; flex-shrink: 0; }
+  .api-key-banner-text { font-size: 12px; color: var(--text2); line-height: 1.4; }
+  .api-key-banner-text a { color: var(--accent); cursor: pointer; text-decoration: underline; }
+
+  /* Settings */
+  .setting-item { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid var(--border); }
+  .setting-label { font-size: 15px; }
+  .setting-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .setting-input { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; color: var(--text); font-family: var(--font-body); font-size: 13px; outline: none; width: 180px; }
+  .badge-count { background: var(--accent); color: #0f0f0f; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px; font-family: var(--font-head); }
+
+  /* Notification */
+  .toast { position: absolute; top: 20px; left: 20px; right: 20px; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 16px; font-size: 13px; z-index: 200; transform: translateY(-80px); transition: transform 0.3s cubic-bezier(0.34,1.2,0.64,1); display: flex; align-items: center; gap: 10px; }
+  .toast.show { transform: translateY(0); }
+  .toast svg { width: 16px; height: 16px; flex-shrink: 0; stroke-width: 2; }
+  .toast.success { border-color: rgba(109,184,138,0.3); }
+  .toast.success svg { stroke: var(--success); }
+  .toast.error { border-color: rgba(224,112,96,0.3); }
+  .toast.error svg { stroke: var(--danger); }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- Toast -->
+  <div class="toast" id="toast">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span id="toast-msg"></span>
+  </div>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <div class="logo">Chef<span>·</span>助手</div>
+        <div class="header-sub">Resort Kitchen Assistant</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span class="badge-count" id="ingr-count">0</span>
+        <span style="font-size:11px;color:var(--text3)">食材</span>
+        <span class="badge-count" id="recipe-count" style="background:var(--bg3);color:var(--text2)">0</span>
+        <span style="font-size:11px;color:var(--text3)">菜谱</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('ingredients')" id="tab-ingredients">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2C8 2 4 6 4 10c0 3 1.5 5.5 4 7v3h8v-3c2.5-1.5 4-4 4-7 0-4-4-8-8-8z" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 21h6" stroke-linecap="round"/></svg>
+      食材库
+    </button>
+    <button class="tab" onclick="switchTab('recipes')" id="tab-recipes">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2v6h6M8 13h8M8 17h5" stroke-linecap="round"/></svg>
+      菜谱
+    </button>
+    <button class="tab" onclick="switchTab('settings')" id="tab-settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      设置
+    </button>
+  </div>
+
+  <!-- Scroll content -->
+  <div class="scroll">
+
+    <!-- INGREDIENTS PAGE -->
+    <div class="page active" id="page-ingredients">
+      <div class="section-title">食材库 <span>Ingredients</span></div>
+      <div class="search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35" stroke-linecap="round"/></svg>
+        <input class="search-input" placeholder="搜索食材 / Search ingredients..." oninput="searchIngredients(this.value)" id="ingr-search">
+      </div>
+      <div class="ingr-grid" id="ingr-grid"></div>
+      <div class="empty" id="ingr-empty" style="display:none">
+        <div class="empty-icon">🥬</div>
+        <div class="empty-title">食材库是空的</div>
+        <div class="empty-sub">点击 + 按钮添加第一个食材<br>Tap + to add your first ingredient</div>
+      </div>
+    </div>
+
+    <!-- RECIPES PAGE -->
+    <div class="page" id="page-recipes">
+      <div class="section-title">菜谱 <span>Recipes</span></div>
+      <div class="search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35" stroke-linecap="round"/></svg>
+        <input class="search-input" placeholder="搜索菜谱 / Search recipes..." oninput="searchRecipes(this.value)" id="recipe-search">
+      </div>
+      <div class="recipe-list" id="recipe-list"></div>
+      <div class="empty" id="recipe-empty" style="display:none">
+        <div class="empty-icon">📖</div>
+        <div class="empty-title">还没有菜谱</div>
+        <div class="empty-sub">点击 + 按钮创建第一个菜谱<br>Tap + to create your first recipe</div>
+      </div>
+    </div>
+
+    <!-- SETTINGS PAGE -->
+    <div class="page" id="page-settings">
+      <div class="section-title">设置 <span>Settings</span></div>
+      <div class="setting-item">
+        <div>
+          <div class="setting-label">Anthropic API Key</div>
+          <div class="setting-sub">用于AI自动识别食材图片</div>
+        </div>
+      </div>
+      <input class="setting-input" id="api-key-input" placeholder="sk-ant-..." type="password" style="width:100%;margin-bottom:8px" oninput="saveApiKey(this.value)">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:24px">获取API Key: <a href="https://console.anthropic.com" style="color:var(--accent)">console.anthropic.com</a> · Key仅存储在本地</div>
+      <div class="setting-item">
+        <div>
+          <div class="setting-label">数据管理</div>
+          <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
+
+<button class="btn-secondary"
+  style="width:auto;padding:10px 18px;font-size:13px;margin-top:0"
+  onclick="document.getElementById('import-file').click()">
+  📥 导入数据
+</button>
+          <div class="setting-sub">导出或清除所有本地数据</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button class="btn-secondary" style="width:auto;padding:10px 18px;font-size:13px;margin-top:0" onclick="exportData()">📤 导出数据</button>
+        <button class="btn-secondary" style="width:auto;padding:10px 18px;font-size:13px;margin-top:0;color:var(--danger);border-color:rgba(224,112,96,0.3)" onclick="clearData()">🗑 清除数据</button>
+      </div>
+      <div class="setting-item" style="margin-top:24px">
+        <div>
+          <div class="setting-label">关于 / About</div>
+          <div class="setting-sub">厨师助手 v1.0 · 数据存储于本地</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DETAIL PAGE -->
+    <div class="page" id="page-detail">
+      <button class="detail-back" onclick="backFromDetail()">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M19 12H5M12 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        返回 Back
+      </button>
+      <div id="detail-content"></div>
+    </div>
+
+  </div><!-- end scroll -->
+
+  <!-- FAB -->
+  <button class="fab" id="fab" onclick="openAddModal()">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+
+  <!-- ADD INGREDIENT MODAL -->
+  <div class="modal-overlay" id="modal-ingr">
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <div class="modal-title" id="modal-ingr-title">添加食材 Add Ingredient</div>
+      <div class="upload-area" id="upload-area" onclick="triggerUpload()">
+        <input type="file"
+       accept="image/*"
+       multiple
+       id="ingr-file-input"
+       onchange="handleImageUpload(event)" style="display:none">
+        <div id="upload-placeholder">
+          <div class="upload-area-icon">📷</div>
+          <div class="upload-area-text">点击拍照或上传图片</div>
+          <div class="upload-area-sub">Tap to take photo or upload</div>
+        </div>
+        <img id="upload-preview" class="upload-preview">
+      </div>
+      <button class="btn-secondary" style="margin-top:8px;margin-bottom:0;font-size:13px;padding:10px" onclick="triggerUpload()">
+        📁 选择图片 / Choose Image
+      </button>
+      <div class="ai-result" id="ai-result">
+        <div class="ai-result-label">✨ AI识别结果 Recognition Result</div>
+        <div class="ai-result-en" id="ai-en"></div>
+        <div class="ai-result-cn" id="ai-cn"></div>
+        <div class="ai-result-desc" id="ai-desc"></div>
+      </div>
+      <div style="height:14px"></div>
+      <div class="form-group">
+        <label class="form-label">英文名称 English Name *</label>
+        <input class="form-input" id="ingr-en" placeholder="e.g. Thyme">
+      </div>
+      <div class="form-group">
+        <label class="form-label">中文名称 Chinese Name *</label>
+        <input class="form-input" id="ingr-cn-input" placeholder="e.g. 百里香">
+      </div>
+      <div class="form-group">
+        <label class="form-label">分类 Category</label>
+        <select class="form-select form-input" id="ingr-cat">
+          <option value="herb">香草 Herb</option>
+          <option value="vegetable">蔬菜 Vegetable</option>
+          <option value="meat">肉类 Meat</option>
+          <option value="seafood">海鲜 Seafood</option>
+          <option value="dairy">乳制品 Dairy</option>
+          <option value="spice">香料 Spice</option>
+          <option value="sauce">酱料 Sauce</option>
+          <option value="grain">谷物 Grain</option>
+          <option value="fruit">水果 Fruit</option>
+          <option value="other">其他 Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">备注 Notes</label>
+        <textarea class="form-textarea" id="ingr-note-input" placeholder="存储方式、常见用途、注意事项... Storage tips, common uses, notes..."></textarea>
+      </div>
+      <button class="btn-primary" onclick="saveIngredient()">保存食材 Save Ingredient</button>
+      <button class="btn-secondary" onclick="closeModal('modal-ingr')">取消 Cancel</button>
+    </div>
+  </div>
+
+  <!-- ADD RECIPE MODAL -->
+  <div class="modal-overlay" id="modal-recipe">
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <div class="modal-title" id="modal-recipe-title">创建菜谱 New Recipe</div>
+      <div class="form-group">
+        <label class="form-label">菜名（中文）Chinese Name *</label>
+        <input class="form-input" id="recipe-name-cn" placeholder="e.g. 香煎三文鱼">
+      </div>
+      <div class="form-group">
+        <label class="form-label">菜名（英文）English Name *</label>
+        <input class="form-input" id="recipe-name-en" placeholder="e.g. Pan-Seared Salmon">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">份数 Servings</label>
+          <input class="form-input" id="recipe-servings" type="number" placeholder="4" min="1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">时间 Time (min)</label>
+          <input class="form-input" id="recipe-time" type="number" placeholder="30" min="1">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">难度 Difficulty</label>
+        <select class="form-select form-input" id="recipe-diff">
+          <option value="easy">简单 Easy</option>
+          <option value="medium">中等 Medium</option>
+          <option value="hard">复杂 Hard</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">原材料清单 Ingredients List</label>
+        <textarea class="form-textarea" id="recipe-ingr-list" placeholder="每行一项，格式：材料名称 用量&#10;例如：Salmon fillet 200g&#10;Butter 30g&#10;Lemon 1pc"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">备注 Notes</label>
+        <textarea class="form-textarea" id="recipe-note" style="min-height:60px" placeholder="特殊技巧、注意事项... Special tips, notes..."></textarea>
+      </div>
+      <button class="btn-primary" onclick="saveRecipe()">保存菜谱 Save Recipe</button>
+      <button class="btn-secondary" onclick="closeModal('modal-recipe')">取消 Cancel</button>
+    </div>
+  </div>
+
+  <!-- EDIT STEP MODAL -->
+  <div class="modal-overlay" id="modal-step">
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <div class="modal-title">编辑步骤 Edit Step</div>
+      <div class="form-group">
+        <label class="form-label">步骤内容 Step Content</label>
+        <textarea class="form-textarea" id="edit-step-text" style="min-height:120px"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">⏱ 倒计时 Countdown Timer <span style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0">（填 0 表示无计时）</span></label>
+        <div style="display:flex;align-items:center;gap:10px">
+          <input class="form-input" id="edit-step-timer-min" type="number" min="0" max="999" placeholder="0" style="width:80px;text-align:center">
+          <span style="color:var(--text2);font-size:14px">分钟 min</span>
+          <input class="form-input" id="edit-step-timer-sec" type="number" min="0" max="59" placeholder="0" style="width:80px;text-align:center">
+          <span style="color:var(--text2);font-size:14px">秒 sec</span>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:6px">例如烤箱加热3分钟 → 填 3分0秒 · e.g. 3 min in oven → enter 3 min 0 sec</div>
+      </div>
+      <input type="hidden" id="edit-step-recipe-id">
+      <input type="hidden" id="edit-step-index">
+      <button class="btn-primary" onclick="saveEditStep()">保存 Save</button>
+      <button class="btn-secondary" onclick="closeModal('modal-step')">取消 Cancel</button>
+    </div>
+  </div>
+
+</div><!-- end app -->
+
+<script>
+// =========================================
+// DATA LAYER
+// =========================================
+let DB = { ingredients: [], recipes: [] };
+
+function loadDB() {
+  try {
+    const saved = localStorage.getItem('chef_db');
+    if (saved) DB = JSON.parse(saved);
+  } catch(e) {}
+}
+function saveDB() {
+  localStorage.setItem('chef_db', JSON.stringify(DB));
+  updateCounts();
+}
+function updateCounts() {
+  document.getElementById('ingr-count').textContent = DB.ingredients.length;
+  document.getElementById('recipe-count').textContent = DB.recipes.length;
+}
+
+// =========================================
+// NAVIGATION
+// =========================================
+let currentTab = 'ingredients';
+let detailReturnTab = 'recipes';
+
+function switchTab(tab) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + tab).classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+  currentTab = tab;
+  document.getElementById('fab').style.display = (tab === 'settings') ? 'none' : 'flex';
+  if (tab === 'ingredients') renderIngredients();
+  if (tab === 'recipes') renderRecipes();
+}
+
+function showDetail(html, returnTab) {
+  detailReturnTab = returnTab || currentTab;
+  document.getElementById('detail-content').innerHTML = html;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-detail').classList.add('active');
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('fab').style.display = 'none';
+}
+
+function backFromDetail() {
+  switchTab(detailReturnTab);
+  document.getElementById('tab-' + detailReturnTab).classList.add('active');
+}
+
+// =========================================
+// MODALS
+// =========================================
+let editIngrId = null;
+let editRecipeId = null;
+
+function openAddModal() {
+  if (currentTab === 'ingredients') openIngrModal();
+  else if (currentTab === 'recipes') openRecipeModal();
+}
+
+function openIngrModal(id) {
+  editIngrId = id || null;
+  resetIngrForm();
+  if (id) {
+    const ingr = DB.ingredients.find(i => i.id === id);
+    if (ingr) {
+      document.getElementById('modal-ingr-title').textContent = '编辑食材 Edit Ingredient';
+      document.getElementById('ingr-en').value = ingr.en;
+      document.getElementById('ingr-cn-input').value = ingr.cn;
+      document.getElementById('ingr-cat').value = ingr.category || 'other';
+      document.getElementById('ingr-note-input').value = ingr.note || '';
+      if (ingr.image) {
+        document.getElementById('upload-preview').src = ingr.image;
+        document.getElementById('upload-preview').style.display = 'block';
+        document.getElementById('upload-placeholder').style.display = 'none';
+      }
+    }
+  } else {
+    document.getElementById('modal-ingr-title').textContent = '添加食材 Add Ingredient';
+  }
+  document.getElementById('modal-ingr').classList.add('open');
+}
+
+function openRecipeModal(id) {
+  editRecipeId = id || null;
+  resetRecipeForm();
+  if (id) {
+    const r = DB.recipes.find(r => r.id === id);
+    if (r) {
+      document.getElementById('modal-recipe-title').textContent = '编辑菜谱 Edit Recipe';
+      document.getElementById('recipe-name-cn').value = r.nameCn;
+      document.getElementById('recipe-name-en').value = r.nameEn;
+      document.getElementById('recipe-servings').value = r.servings || '';
+      document.getElementById('recipe-time').value = r.time || '';
+      document.getElementById('recipe-diff').value = r.difficulty || 'medium';
+      document.getElementById('recipe-ingr-list').value = (r.ingredients || []).join('\n');
+      document.getElementById('recipe-note').value = r.note || '';
+    }
+  } else {
+    document.getElementById('modal-recipe-title').textContent = '创建菜谱 New Recipe';
+  }
+  document.getElementById('modal-recipe').classList.add('open');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+
+function resetIngrForm() {
+  document.getElementById('ingr-en').value = '';
+  document.getElementById('ingr-cn-input').value = '';
+  document.getElementById('ingr-note-input').value = '';
+  document.getElementById('ingr-cat').value = 'other';
+
+  document.getElementById('upload-preview').style.display = 'none';
+  document.getElementById('upload-placeholder').style.display = 'block';
+
+  document.getElementById('ai-result').style.display = 'none';
+
+  currentImageBase64 = null;
+
+  // 关键修复：重置 file input
+  document.getElementById('ingr-file-input').value = '';
+}
+
+function resetRecipeForm() {
+  ['recipe-name-cn','recipe-name-en','recipe-servings','recipe-time','recipe-ingr-list','recipe-note'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('recipe-diff').value = 'medium';
+}
+
+// Close on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('open');
+  });
+});
+
+// =========================================
+// IMAGE UPLOAD & AI
+// =========================================
+let currentImageBase64 = null;
+
+function triggerUpload() {
+  document.getElementById('ingr-file-input').click();
+}
+
+function handleImageUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async function(e) {
+    const dataUrl = e.target.result;
+    currentImageBase64 = dataUrl.split(',')[1];
+    document.getElementById('upload-preview').src = dataUrl;
+    document.getElementById('upload-preview').style.display = 'block';
+    document.getElementById('upload-placeholder').style.display = 'none';
+    const apiKey = localStorage.getItem('chef_api_key');
+    if (apiKey) {
+      await recognizeIngredient(currentImageBase64, apiKey);
+    } else {
+      showToast('请先在设置中填写API Key才能使用AI识别', 'error');
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+async function recognizeIngredient(base64, apiKey) {
+  const resultEl = document.getElementById('ai-result');
+  resultEl.style.display = 'block';
+  document.getElementById('ai-en').innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
+  document.getElementById('ai-cn').textContent = 'AI识别中...';
+  document.getElementById('ai-desc').textContent = '';
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 400,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64 } },
+            { type: 'text', text: 'Identify this food ingredient. Reply ONLY in this JSON format, no other text: {"en":"English name","cn":"中文名称","category":"herb/vegetable/meat/seafood/dairy/spice/sauce/grain/fruit/other","desc":"One sentence about storage and common uses in English and Chinese (mixed ok)"}' }
+          ]
+        }]
+      })
+    });
+    const data = await resp.json();
+    const text = data.content[0].text.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(text);
+    document.getElementById('ai-en').textContent = parsed.en;
+    document.getElementById('ai-cn').textContent = parsed.cn;
+    document.getElementById('ai-desc').textContent = parsed.desc;
+    document.getElementById('ingr-en').value = parsed.en;
+    document.getElementById('ingr-cn-input').value = parsed.cn;
+    document.getElementById('ingr-cat').value = parsed.category || 'other';
+    document.getElementById('ingr-note-input').value = parsed.desc;
+  } catch(e) {
+    document.getElementById('ai-en').textContent = '识别失败 Recognition failed';
+    document.getElementById('ai-cn').textContent = '请手动填写 Please fill manually';
+  }
+}
+
+// =========================================
+// INGREDIENTS CRUD
+// =========================================
+const catLabels = { herb:'香草 Herb', vegetable:'蔬菜 Vegetable', meat:'肉类 Meat', seafood:'海鲜 Seafood', dairy:'乳制品 Dairy', spice:'香料 Spice', sauce:'酱料 Sauce', grain:'谷物 Grain', fruit:'水果 Fruit', other:'其他 Other' };
+const catEmoji = { herb:'🌿', vegetable:'🥦', meat:'🥩', seafood:'🐟', dairy:'🧀', spice:'🧂', sauce:'🫙', grain:'🌾', fruit:'🍎', other:'🥣' };
+
+function saveIngredient() {
+  const en = document.getElementById('ingr-en').value.trim();
+  const cn = document.getElementById('ingr-cn-input').value.trim();
+  if (!en || !cn) { showToast('请填写英文名和中文名 / Please fill both names', 'error'); return; }
+  const obj = {
+    id: editIngrId || Date.now().toString(),
+    en, cn,
+    category: document.getElementById('ingr-cat').value,
+    note: document.getElementById('ingr-note-input').value.trim(),
+    image: currentImageBase64 ? ('data:image/jpeg;base64,' + currentImageBase64) : null,
+    updatedAt: Date.now()
+  };
+  if (editIngrId) {
+    const idx = DB.ingredients.findIndex(i => i.id === editIngrId);
+    if (idx >= 0) DB.ingredients[idx] = obj;
+  } else {
+    DB.ingredients.unshift(obj);
+  }
+  saveDB();
+  closeModal('modal-ingr');
+  renderIngredients();
+  showToast(editIngrId ? '食材已更新 Ingredient updated' : '食材已添加 Ingredient added');
+}
+
+function deleteIngredient(id) {
+  if (!confirm('删除这个食材？Delete this ingredient?')) return;
+  DB.ingredients = DB.ingredients.filter(i => i.id !== id);
+  saveDB();
+  renderIngredients();
+  showToast('已删除 Deleted');
+}
+
+function renderIngredients(filter) {
+  const list = filter ? DB.ingredients.filter(i =>
+    i.en.toLowerCase().includes(filter.toLowerCase()) ||
+    i.cn.includes(filter) ||
+    (i.note || '').toLowerCase().includes(filter.toLowerCase())
+  ) : DB.ingredients;
+
+  const grid = document.getElementById('ingr-grid');
+  const empty = document.getElementById('ingr-empty');
+  if (!list.length) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  grid.innerHTML = list.map(ingr => `
+    <div class="ingr-card" onclick="showIngrDetail('${ingr.id}')">
+      ${ingr.image ? `<img class="ingr-img" src="${ingr.image}" alt="${ingr.en}" loading="lazy">` : `<div class="ingr-img-placeholder">${catEmoji[ingr.category] || '🥣'}</div>`}
+      <div class="ingr-body">
+        <div class="ingr-en">${ingr.en}</div>
+        <div class="ingr-cn">${ingr.cn}</div>
+        ${ingr.note ? `<div class="ingr-note">${ingr.note.substring(0,60)}${ingr.note.length>60?'...':''}</div>` : ''}
+        <div class="ingr-tag">${catLabels[ingr.category] || '其他'}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function showIngrDetail(id) {
+  const ingr = DB.ingredients.find(i => i.id === id);
+  if (!ingr) return;
+  const html = `
+    ${ingr.image ? `<img src="${ingr.image}" style="width:100%;border-radius:var(--radius);margin-bottom:16px;max-height:200px;object-fit:cover">` : `<div style="width:100%;height:140px;border-radius:var(--radius);background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:64px;margin-bottom:16px">${catEmoji[ingr.category]||'🥣'}</div>`}
+    <div class="detail-title">${ingr.cn}</div>
+    <div class="detail-title-en">${ingr.en}</div>
+    <div class="detail-meta">
+      <div class="meta-chip">${catLabels[ingr.category]||'其他'}</div>
+    </div>
+    ${ingr.note ? `<div class="section-head">备注 Notes</div><div style="font-size:14px;line-height:1.7;color:var(--text2);background:var(--bg2);padding:14px;border-radius:var(--radius-sm)">${ingr.note}</div>` : ''}
+    <div style="display:flex;gap:8px;margin-top:20px">
+      <button class="btn-sm" onclick="openIngrModal('${id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke-linecap="round" stroke-linejoin="round"/></svg>编辑</button>
+      <button class="btn-sm danger" onclick="deleteIngredient('${id}');backFromDetail()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2" stroke-linecap="round" stroke-linejoin="round"/></svg>删除</button>
+    </div>
+  `;
+  showDetail(html, 'ingredients');
+}
+
+function searchIngredients(v) { renderIngredients(v); }
+
+// =========================================
+// RECIPES CRUD
+// =========================================
+const diffLabels = { easy:'简单 Easy', medium:'中等 Medium', hard:'复杂 Hard' };
+
+// helpers
+function normaliseStep(s) {
+  if (typeof s === 'string') return { text: s, timer: 0 };
+  return { text: s.text || '', timer: s.timer || 0 };
+}
+function fmtTimer(sec) {
+  const m = Math.floor(sec / 60), s = sec % 60;
+  return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+
+// active countdown state keyed by "recipeId-stepIndex"
+const activeTimers = {};
+
+function startTimer(recipeId, stepIndex) {
+  const key = recipeId + '-' + stepIndex;
+  if (activeTimers[key] && activeTimers[key].running) return;
+  const r = DB.recipes.find(r => r.id === recipeId);
+  if (!r) return;
+  const step = normaliseStep(r.steps[stepIndex]);
+  if (!step.timer) return;
+  if (!activeTimers[key]) activeTimers[key] = { remaining: step.timer, running: false };
+  if (activeTimers[key].done) return;
+  activeTimers[key].running = true;
+  activeTimers[key].interval = setInterval(() => {
+    activeTimers[key].remaining--;
+    const dispEl = document.getElementById('timer-display-' + key);
+    const ringEl = document.getElementById('timer-ring-' + key);
+    if (dispEl) dispEl.textContent = fmtTimer(activeTimers[key].remaining);
+    if (ringEl) {
+      const circ = 2 * Math.PI * 20;
+      ringEl.style.strokeDashoffset = (circ * activeTimers[key].remaining / step.timer).toFixed(2);
+    }
+    if (activeTimers[key].remaining <= 0) {
+      clearInterval(activeTimers[key].interval);
+      activeTimers[key].running = false;
+      activeTimers[key].done = true;
+      if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        [0,0.4,0.8].forEach(t => {
+          const o = ctx.createOscillator(), g = ctx.createGain();
+          o.connect(g); g.connect(ctx.destination);
+          o.frequency.value = 880;
+          g.gain.setValueAtTime(0.4, ctx.currentTime + t);
+          g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.3);
+          o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + 0.35);
+        });
+      } catch(e) {}
+      // replace widget with done state
+      const wEl = document.getElementById('timer-widget-' + key);
+      if (wEl) wEl.innerHTML = `<div style="display:flex;align-items:center;gap:10px;background:rgba(109,184,138,0.12);border:1px solid rgba(109,184,138,0.25);border-radius:12px;padding:10px 14px;margin-top:8px">
+        <span style="font-size:20px">✅</span>
+        <div><div style="font-size:13px;font-weight:500;color:var(--success)">计时完成 Timer Done!</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:1px">${fmtTimer(step.timer)} elapsed</div></div>
+        <button onclick="resetTimer('${recipeId}',${stepIndex})" style="margin-left:auto;padding:5px 12px;background:none;border:1px solid rgba(109,184,138,0.3);border-radius:8px;color:var(--success);font-size:12px;cursor:pointer;font-family:var(--font-body)">重置</button>
+      </div>`;
+      showToast('⏰ 步骤计时完成！Timer done!');
+      return;
+    }
+    updateTimerButtons(key);
+  }, 1000);
+  updateTimerButtons(key);
+}
+
+function pauseTimer(recipeId, stepIndex) {
+  const key = recipeId + '-' + stepIndex;
+  if (!activeTimers[key]) return;
+  clearInterval(activeTimers[key].interval);
+  activeTimers[key].running = false;
+  updateTimerButtons(key);
+}
+
+function resetTimer(recipeId, stepIndex) {
+  const key = recipeId + '-' + stepIndex;
+  if (activeTimers[key]) { clearInterval(activeTimers[key].interval); delete activeTimers[key]; }
+  const r = DB.recipes.find(r => r.id === recipeId);
+  if (!r) return;
+  const step = normaliseStep(r.steps[stepIndex]);
+  const circ = 2 * Math.PI * 20;
+  const wEl = document.getElementById('timer-widget-' + key);
+  if (wEl) {
+    const dispEl = document.getElementById('timer-display-' + key);
+    const ringEl = document.getElementById('timer-ring-' + key);
+    if (dispEl) dispEl.textContent = fmtTimer(step.timer);
+    if (ringEl) ringEl.style.strokeDashoffset = circ.toFixed(2);
+    // restore start button if it was in done state
+    const startBtn = document.getElementById('tbtn-start-' + key);
+    if (!startBtn) {
+      // widget was replaced with done state, re-render it
+      wEl.innerHTML = buildTimerWidgetHTML(recipeId, stepIndex, step);
+    }
+  }
+  updateTimerButtons(key);
+}
+
+function buildTimerWidgetHTML(recipeId, stepIndex, step) {
+  const key = recipeId + '-' + stepIndex;
+  const circ = 2 * Math.PI * 20;
+  const mins = Math.floor(step.timer/60), secs = step.timer%60;
+  return `<div style="display:flex;align-items:center;gap:12px;background:rgba(232,201,122,0.07);border:1px solid rgba(232,201,122,0.18);border-radius:12px;padding:10px 14px;margin-top:8px">
+    <svg width="52" height="52" viewBox="0 0 52 52" style="flex-shrink:0;transform:rotate(-90deg)">
+      <circle cx="26" cy="26" r="20" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="4"/>
+      <circle id="timer-ring-${key}" cx="26" cy="26" r="20" fill="none" stroke="#e8c97a" stroke-width="4"
+        stroke-dasharray="${circ.toFixed(2)}" stroke-dashoffset="${circ.toFixed(2)}" stroke-linecap="round"
+        style="transition:stroke-dashoffset 0.9s linear"/>
+      <text id="timer-display-${key}" x="26" y="30" text-anchor="middle"
+        transform="rotate(90,26,26) translate(0,-52)"
+        style="font-family:'Syne',sans-serif;font-size:11px;font-weight:700;fill:#e8c97a">${fmtTimer(step.timer)}</text>
+    </svg>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:4px">⏱ ${mins}分${secs?secs+'秒':''} / ${mins}min${secs?secs+'s':''}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button id="tbtn-start-${key}" onclick="startTimer('${recipeId}',${stepIndex})"
+          style="display:flex;align-items:center;gap:5px;padding:6px 14px;background:var(--accent);border:none;border-radius:8px;color:#0f0f0f;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="#0f0f0f"><polygon points="5 3 19 12 5 21 5 3"/></svg>开始</button>
+        <button id="tbtn-pause-${key}" onclick="pauseTimer('${recipeId}',${stepIndex})"
+          style="display:none;align-items:center;gap:5px;padding:6px 14px;background:var(--bg4);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>暂停</button>
+        <button onclick="resetTimer('${recipeId}',${stepIndex})"
+          style="padding:6px 12px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--text3);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer">重置</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function updateTimerButtons(key) {
+  const state = activeTimers[key];
+  const startBtn = document.getElementById('tbtn-start-' + key);
+  const pauseBtn = document.getElementById('tbtn-pause-' + key);
+  if (!startBtn || !pauseBtn) return;
+  if (state && state.running) {
+    startBtn.style.display = 'none'; pauseBtn.style.display = 'flex';
+  } else {
+    startBtn.style.display = 'flex'; pauseBtn.style.display = 'none';
+  }
+}
+
+function saveRecipe() {
+  const nameCn = document.getElementById('recipe-name-cn').value.trim();
+  const nameEn = document.getElementById('recipe-name-en').value.trim();
+  if (!nameCn || !nameEn) { showToast('请填写菜名 / Please fill recipe name', 'error'); return; }
+  const ingrRaw = document.getElementById('recipe-ingr-list').value.trim();
+  const ingredients = ingrRaw ? ingrRaw.split('\n').filter(l => l.trim()) : [];
+  const existingSteps = editRecipeId ? (DB.recipes.find(r => r.id === editRecipeId) || {}).steps || [] : [];
+  const obj = {
+    id: editRecipeId || Date.now().toString(),
+    nameCn, nameEn,
+    servings: document.getElementById('recipe-servings').value || '4',
+    time: document.getElementById('recipe-time').value || '',
+    difficulty: document.getElementById('recipe-diff').value,
+    ingredients,
+    steps: existingSteps.map(normaliseStep),
+    note: document.getElementById('recipe-note').value.trim(),
+    updatedAt: Date.now()
+  };
+  if (editRecipeId) {
+    const idx = DB.recipes.findIndex(r => r.id === editRecipeId);
+    if (idx >= 0) DB.recipes[idx] = obj;
+  } else {
+    DB.recipes.unshift(obj);
+  }
+  saveDB();
+  closeModal('modal-recipe');
+  renderRecipes();
+  showToast(editRecipeId ? '菜谱已更新 Recipe updated' : '菜谱已创建 Recipe created');
+}
+
+function deleteRecipe(id) {
+  if (!confirm('删除这个菜谱？Delete this recipe?')) return;
+  DB.recipes = DB.recipes.filter(r => r.id !== id);
+  saveDB();
+  renderRecipes();
+  showToast('已删除 Deleted');
+}
+
+function renderRecipes(filter) {
+  const list = filter ? DB.recipes.filter(r =>
+    r.nameCn.includes(filter) || r.nameEn.toLowerCase().includes(filter.toLowerCase())
+  ) : DB.recipes;
+  const el = document.getElementById('recipe-list');
+  const empty = document.getElementById('recipe-empty');
+  if (!list.length) { el.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  el.innerHTML = list.map(r => `
+    <div class="recipe-card" onclick="showRecipeDetail('${r.id}')">
+      <div class="recipe-header">
+        <div>
+          <div class="recipe-name">${r.nameCn}</div>
+          <div class="recipe-name-en">${r.nameEn}</div>
+        </div>
+        <div class="recipe-badge">${diffLabels[r.difficulty]||'中等'}</div>
+      </div>
+      <div class="recipe-steps-preview">
+        ${r.time ? `<div class="step-chip">⏱ ${r.time} min</div>` : ''}
+        ${r.servings ? `<div class="step-chip">🍽 ${r.servings} servings</div>` : ''}
+        <div class="step-chip">📝 ${r.steps.length} 步骤 steps</div>
+        <div class="step-chip">🥬 ${r.ingredients.length} 种食材</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function showRecipeDetail(id) {
+  const r = DB.recipes.find(r => r.id === id);
+  if (!r) return;
+  const steps = r.steps.map(normaliseStep);
+  const circ = (2 * Math.PI * 20).toFixed(2);
+  const stepsHtml = steps.length ? steps.map((s, i) => {
+    const key = id + '-' + i;
+    const timerBlock = s.timer > 0 ? `<div id="timer-widget-${key}">${buildTimerWidgetHTML(id, i, s)}</div>` : '';
+    return `<div class="step-detail-item" id="step-item-${key}">
+      <div class="step-detail-num">${String(i+1).padStart(2,'0')}</div>
+      <div style="flex:1;min-width:0">
+        <div class="step-detail-text">${s.text}</div>
+        ${timerBlock}
+        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+          <button class="step-btn" onclick="openEditStep('${id}',${i})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke-linecap="round" stroke-linejoin="round"/></svg>编辑</button>
+          <button class="step-btn" style="color:var(--danger);border-color:rgba(224,112,96,0.2)" onclick="deleteStep('${id}',${i})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>删除</button>
+          ${i > 0 ? `<button class="step-btn" onclick="moveStep('${id}',${i},-1)">↑</button>` : ''}
+          ${i < steps.length-1 ? `<button class="step-btn" onclick="moveStep('${id}',${i},1)">↓</button>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('') : '<div style="color:var(--text3);font-size:13px;padding:10px 0">还没有步骤，在下方添加第一步 / Add your first step below</div>';
+
+  const ingrHtml = r.ingredients.map(item => {
+    const parts = item.match(/^(.*?)(\s+\S+)$/);
+    return parts ? `<div class="ingr-detail-item"><div class="ingr-detail-name">${parts[1].trim()}</div><div class="ingr-detail-amount">${parts[2].trim()}</div></div>` : `<div class="ingr-detail-item"><div class="ingr-detail-name">${item}</div></div>`;
+  }).join('');
+
+  const html = `
+    <div class="detail-title">${r.nameCn}</div>
+    <div class="detail-title-en">${r.nameEn}</div>
+    <div class="detail-meta">
+      ${r.time ? `<div class="meta-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${r.time} min</div>` : ''}
+      ${r.servings ? `<div class="meta-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>${r.servings} servings</div>` : ''}
+      <div class="meta-chip">${diffLabels[r.difficulty]||'中等'}</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:20px">
+      <button class="btn-sm" onclick="openRecipeModal('${id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke-linecap="round" stroke-linejoin="round"/></svg>编辑基本信息</button>
+      <button class="btn-sm danger" onclick="deleteRecipe('${id}');backFromDetail()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2" stroke-linecap="round" stroke-linejoin="round"/></svg>删除菜谱</button>
+    </div>
+    ${r.ingredients.length ? `<div class="section-head">原材料 Ingredients</div><div class="ingr-detail-list">${ingrHtml}</div>` : ''}
+    <div class="section-head" style="margin-top:24px">制作步骤 Steps</div>
+    <div id="steps-container-${id}">${stepsHtml}</div>
+    <div class="step-add" style="margin-top:16px">
+      <input placeholder="添加新步骤 Add step..." id="new-step-${id}" onkeydown="if(event.key==='Enter')addStep('${id}')">
+      <button onclick="addStep('${id}')">+ 添加</button>
+    </div>
+    ${r.note ? `<div class="section-head" style="margin-top:20px">备注 Notes</div><div style="font-size:14px;line-height:1.7;color:var(--text2);background:var(--bg2);padding:14px;border-radius:var(--radius-sm)">${r.note}</div>` : ''}
+  `;
+  showDetail(html, 'recipes');
+}
+
+function addStep(recipeId) {
+  const inp = document.getElementById('new-step-' + recipeId);
+  const text = inp.value.trim();
+  if (!text) return;
+  const r = DB.recipes.find(r => r.id === recipeId);
+  if (!r) return;
+  r.steps.push({ text, timer: 0 });
+  saveDB();
+  inp.value = '';
+  showRecipeDetail(recipeId);
+  showToast('步骤已添加 Step added');
+}
+
+function deleteStep(recipeId, index) {
+  const r = DB.recipes.find(r => r.id === recipeId);
+  if (!r) return;
+  r.steps.splice(index, 1);
+  saveDB();
+  showRecipeDetail(recipeId);
+}
+
+function moveStep(recipeId, index, dir) {
+  const r = DB.recipes.find(r => r.id === recipeId);
+  if (!r) return;
+  const newIdx = index + dir;
+  if (newIdx < 0 || newIdx >= r.steps.length) return;
+  [r.steps[index], r.steps[newIdx]] = [r.steps[newIdx], r.steps[index]];
+  saveDB();
+  showRecipeDetail(recipeId);
+}
+
+function openEditStep(recipeId, index) {
+  const r = DB.recipes.find(r => r.id === recipeId);
+  if (!r) return;
+  const step = normaliseStep(r.steps[index]);
+  document.getElementById('edit-step-text').value = step.text;
+  document.getElementById('edit-step-timer-min').value = Math.floor(step.timer / 60);
+  document.getElementById('edit-step-timer-sec').value = step.timer % 60;
+  document.getElementById('edit-step-recipe-id').value = recipeId;
+  document.getElementById('edit-step-index').value = index;
+  document.getElementById('modal-step').classList.add('open');
+}
+
+function saveEditStep() {
+  const recipeId = document.getElementById('edit-step-recipe-id').value;
+  const index = parseInt(document.getElementById('edit-step-index').value);
+  const text = document.getElementById('edit-step-text').value.trim();
+  if (!text) return;
+  const mins = parseInt(document.getElementById('edit-step-timer-min').value) || 0;
+  const secs = parseInt(document.getElementById('edit-step-timer-sec').value) || 0;
+  const timer = Math.max(0, mins * 60 + secs);
+  const r = DB.recipes.find(r => r.id === recipeId);
+  if (!r) return;
+  r.steps[index] = { text, timer };
+  const key = recipeId + '-' + index;
+  if (activeTimers[key]) { clearInterval(activeTimers[key].interval); delete activeTimers[key]; }
+  saveDB();
+  closeModal('modal-step');
+  showRecipeDetail(recipeId);
+  showToast('步骤已更新 Step updated');
+}
+
+function searchRecipes(v) { renderRecipes(v); }
+
+// =========================================
+// SETTINGS
+// =========================================
+function saveApiKey(v) {
+  localStorage.setItem('chef_api_key', v);
+}
+function exportData() {
+  const blob = new Blob([JSON.stringify(DB, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'chef-assistant-backup.json';
+  a.click();
+  showToast('数据已导出 Data exported');
+}
+function clearData() {
+  if (!confirm('清除所有数据？这不可撤销！\nClear all data? This cannot be undone!')) return;
+  DB = { ingredients: [], recipes: [] };
+  saveDB();
+  renderIngredients();
+  renderRecipes();
+  showToast('数据已清除 Data cleared');
+}
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = function(e) {
+    try {
+      const imported = JSON.parse(e.target.result);
+
+      if (!imported.ingredients || !imported.recipes) {
+        showToast('JSON格式错误', 'error');
+        return;
+      }
+
+      DB = imported;
+
+      saveDB();
+
+      renderIngredients();
+      renderRecipes();
+
+      showToast('数据导入成功');
+    } catch(err) {
+      showToast('导入失败：JSON无效', 'error');
+    }
+  };
+
+  reader.readAsText(file);
+}
+// =========================================
+// TOAST
+// =========================================
+let toastTimer;
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  const s = t.querySelector('svg');
+  document.getElementById('toast-msg').textContent = msg;
+  t.className = 'toast show ' + (type || 'success');
+  if (type === 'error') {
+    s.innerHTML = '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>';
+  } else {
+    s.innerHTML = '<path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>';
+  }
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// =========================================
+// INIT
+// =========================================
+loadDB();
+const savedKey = localStorage.getItem('chef_api_key');
+if (savedKey) document.getElementById('api-key-input').value = savedKey;
+renderIngredients();
+renderRecipes();
+updateCounts();
+</script>
+</body>
+</html>
