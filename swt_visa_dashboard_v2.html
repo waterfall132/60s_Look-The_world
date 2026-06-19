@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SWT/J1 面签助手</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg: #f7f6f3;
+    --card: #ffffff;
+    --border: rgba(0,0,0,0.08);
+    --border-strong: rgba(0,0,0,0.15);
+    --text: #1a1a1a;
+    --text-muted: #6b6b6b;
+    --text-faint: #9a9a9a;
+    --accent: #1a5fb4;
+    --accent-light: #e8f0fd;
+    --green: #2e7d32;
+    --green-light: #e8f5e9;
+    --amber: #b45309;
+    --amber-light: #fef3c7;
+    --red: #b91c1c;
+    --red-light: #fee2e2;
+    --purple: #6d28d9;
+    --purple-light: #ede9fe;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111111;
+      --card: #1e1e1e;
+      --border: rgba(255,255,255,0.08);
+      --border-strong: rgba(255,255,255,0.15);
+      --text: #f0f0f0;
+      --text-muted: #a0a0a0;
+      --text-faint: #606060;
+      --accent: #60a5fa;
+      --accent-light: #1e3a5f;
+      --green: #4ade80;
+      --green-light: #14302a;
+      --amber: #fbbf24;
+      --amber-light: #2d1f06;
+      --red: #f87171;
+      --red-light: #300f0f;
+      --purple: #a78bfa;
+      --purple-light: #2e1a4a;
+      --shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans SC', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+  .app { max-width: 960px; margin: 0 auto; padding: 24px 16px 60px; }
+  .header { text-align: center; padding: 32px 0 28px; }
+  .header h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; color: var(--text); }
+  .header p { color: var(--text-muted); margin-top: 6px; font-size: 14px; }
+  .flag { font-size: 28px; display: block; margin-bottom: 8px; }
+
+  /* NAV TABS */
+  .nav { display: flex; gap: 4px; background: var(--card); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 4px; margin-bottom: 24px; overflow-x: auto; }
+  .nav-btn { flex: 1; min-width: 80px; padding: 9px 12px; border: none; border-radius: 8px; background: transparent; color: var(--text-muted); font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: all 0.15s; }
+  .nav-btn:hover { background: var(--bg); color: var(--text); }
+  .nav-btn.active { background: var(--accent); color: #fff; }
+
+  /* TABS */
+  .tab { display: none; }
+  .tab.active { display: block; animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* CARDS */
+  .card { background: var(--card); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
+  .card + .card { margin-top: 16px; }
+  .card-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+
+  /* STAT GRID */
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .stat-card { background: var(--bg); border-radius: var(--radius-sm); padding: 14px 16px; text-align: center; }
+  .stat-num { font-size: 28px; font-weight: 700; line-height: 1; }
+  .stat-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  .stat-num.green { color: var(--green); }
+  .stat-num.amber { color: var(--amber); }
+  .stat-num.red { color: var(--red); }
+  .stat-num.blue { color: var(--accent); }
+
+  /* CHART CONTAINER */
+  .chart-wrap { position: relative; width: 100%; }
+
+  /* BADGE */
+  .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
+  .badge-green { background: var(--green-light); color: var(--green); }
+  .badge-amber { background: var(--amber-light); color: var(--amber); }
+  .badge-red { background: var(--red-light); color: var(--red); }
+  .badge-blue { background: var(--accent-light); color: var(--accent); }
+  .badge-purple { background: var(--purple-light); color: var(--purple); }
+
+  /* QUESTION LIST */
+  .q-list { list-style: none; }
+  .q-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 0.5px solid var(--border); }
+  .q-item:last-child { border-bottom: none; }
+  .q-bar-wrap { flex: 1; }
+  .q-text { font-size: 13px; color: var(--text); margin-bottom: 4px; }
+  .q-bar { height: 4px; background: var(--accent); border-radius: 2px; transition: width 0.5s ease; }
+  .q-count { font-size: 12px; color: var(--text-muted); min-width: 28px; text-align: right; font-weight: 600; }
+
+  /* CITY TABS */
+  .city-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  .city-btn { padding: 6px 14px; border: 0.5px solid var(--border-strong); border-radius: 20px; background: transparent; color: var(--text-muted); font-size: 13px; cursor: pointer; transition: all 0.15s; }
+  .city-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .city-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* CITY DETAIL */
+  .city-detail { display: none; }
+  .city-detail.active { display: block; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 600px) { .two-col { grid-template-columns: 1fr; } }
+
+  /* VO TAGS */
+  .vo-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .vo-tag { padding: 4px 10px; border-radius: 20px; font-size: 12px; background: var(--bg); border: 0.5px solid var(--border-strong); color: var(--text); }
+  .vo-tag.white-male { border-color: #60a5fa; color: #1d4ed8; background: #eff6ff; }
+  .vo-tag.bald { border-color: #a16207; color: #92400e; background: #fefce8; }
+  .vo-tag.white-female { border-color: #ec4899; color: #9d174d; background: #fdf2f8; }
+  .vo-tag.black { border-color: #7c3aed; color: #4c1d95; background: #f5f3ff; }
+  .vo-tag.asian { border-color: #059669; color: #064e3b; background: #ecfdf5; }
+  @media (prefers-color-scheme: dark) {
+    .vo-tag.white-male { background: #1e3a5f; color: #93c5fd; border-color: #3b82f6; }
+    .vo-tag.bald { background: #2d1f06; color: #fbbf24; border-color: #d97706; }
+    .vo-tag.white-female { background: #500724; color: #f9a8d4; border-color: #db2777; }
+    .vo-tag.black { background: #2e1a4a; color: #c4b5fd; border-color: #7c3aed; }
+    .vo-tag.asian { background: #064e3b; color: #6ee7b7; border-color: #10b981; }
+  }
+
+  /* TIPS */
+  .tips-list { list-style: none; }
+  .tips-list li { padding: 8px 0 8px 16px; border-left: 3px solid var(--accent); margin-bottom: 8px; font-size: 13px; color: var(--text); line-height: 1.5; }
+  .tips-list li:last-child { margin-bottom: 0; }
+
+  /* RECOMMEND FORM */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .form-group select, .form-group input {
+    padding: 9px 12px; border: 0.5px solid var(--border-strong); border-radius: var(--radius-sm);
+    background: var(--bg); color: var(--text); font-size: 13px; outline: none;
+    transition: border-color 0.15s;
+  }
+  .form-group select:focus, .form-group input:focus { border-color: var(--accent); }
+  .btn-primary {
+    width: 100%; padding: 12px; background: var(--accent); color: #fff; border: none;
+    border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer;
+    margin-top: 20px; transition: opacity 0.15s;
+  }
+  .btn-primary:hover { opacity: 0.88; }
+
+  /* RESULT CASES */
+  .result-area { margin-top: 24px; }
+  .case-card {
+    background: var(--card); border: 0.5px solid var(--border); border-radius: var(--radius);
+    padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow);
+  }
+  .case-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .case-score { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+  .case-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .case-meta span { font-size: 12px; color: var(--text-muted); background: var(--bg); padding: 2px 8px; border-radius: 4px; }
+  .case-qs { margin-top: 8px; }
+  .case-qs p { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; }
+  .case-qs ul { list-style: none; }
+  .case-qs li { font-size: 13px; color: var(--text); padding: 2px 0 2px 12px; border-left: 2px solid var(--accent); margin-bottom: 3px; }
+  .case-tips { margin-top: 10px; font-size: 12px; color: var(--text-muted); background: var(--amber-light); padding: 8px 10px; border-radius: 6px; border-left: 3px solid var(--amber); }
+  @media (prefers-color-scheme: dark) {
+    .case-tips { color: var(--amber); }
+  }
+  .summary-box { background: var(--green-light); border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 16px; border-left: 4px solid var(--green); }
+  .summary-box h3 { font-size: 14px; font-weight: 600; color: var(--green); margin-bottom: 8px; }
+  .summary-box ul { list-style: none; }
+  .summary-box li { font-size: 13px; color: var(--text); padding: 3px 0; }
+  .no-result { text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 14px; }
+
+  /* PROGRESS BAR FOR PASS RATE */
+  .passrate-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .passrate-city { min-width: 48px; font-size: 13px; font-weight: 500; }
+  .passrate-bar-bg { flex: 1; height: 8px; background: var(--bg); border-radius: 4px; overflow: hidden; }
+  .passrate-bar-fill { height: 100%; border-radius: 4px; transition: width 0.8s ease; }
+  .passrate-label { min-width: 60px; font-size: 12px; color: var(--text-muted); text-align: right; }
+
+  /* DIVIDER */
+  .divider { height: 0.5px; background: var(--border); margin: 16px 0; }
+
+  /* SCROLL to top */
+  .back-top { position: fixed; bottom: 24px; right: 24px; background: var(--accent); color: #fff; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); opacity: 0; transition: opacity 0.2s; pointer-events: none; }
+  .back-top.show { opacity: 1; pointer-events: auto; }
+
+  /* ── Check 弹窗 ── */
+  .check-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;padding:16px;overflow-y:auto;}
+  .check-overlay.open{display:flex;align-items:flex-start;justify-content:center;}
+  .check-modal{background:var(--card);border-radius:var(--radius);max-width:700px;width:100%;margin:auto;padding:24px;position:relative;box-shadow:0 8px 32px rgba(0,0,0,.2);}
+  .check-modal-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;border-bottom:.5px solid var(--border);padding-bottom:14px;}
+  .check-modal-title{font-size:15px;font-weight:600;color:var(--text);line-height:1.4;}
+  .check-close{width:30px;height:30px;border:.5px solid var(--border-strong);border-radius:8px;background:transparent;color:var(--text-muted);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .check-close:hover{background:var(--bg);}
+  .check-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border:.5px solid var(--amber);border-radius:20px;background:var(--amber-light);color:var(--amber);font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s;margin-bottom:16px;}
+  .check-btn:hover{opacity:.8;}
+  .check-dot{width:8px;height:8px;border-radius:50%;background:var(--amber);flex-shrink:0;}
+  .check-case{border:.5px solid var(--border);border-left:3px solid var(--amber);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:12px;background:var(--bg);}
+  .check-case:last-child{margin-bottom:0;}
+  .check-hd{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:8px;}
+  .check-meta{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
+  .check-meta span{font-size:11px;color:var(--text-muted);background:var(--card);padding:2px 8px;border-radius:4px;border:.5px solid var(--border);}
+  .date-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;margin:4px 0 8px;}
+  .dn-iv{padding:3px 8px;border-radius:4px;background:var(--amber-light);color:var(--amber);font-weight:500;}
+  .dn-pt{padding:3px 8px;border-radius:4px;background:var(--accent-light);color:var(--accent);font-weight:500;}
+  .dn-gap{padding:2px 8px;border-radius:12px;background:var(--bg);border:.5px solid var(--border-strong);color:var(--text-muted);font-size:11px;}
+  .date-arrow{color:var(--text-faint);}
+  .check-diff{font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--amber-light);color:var(--amber);}
+  .check-qs-lbl{font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:4px;}
+  .check-qs ul{list-style:none;}
+  .check-qs li{font-size:12px;color:var(--text);padding:2px 0 2px 10px;border-left:2px solid var(--amber);margin-bottom:2px;}
+  .check-summary{font-size:12px;color:var(--text);margin-bottom:6px;line-height:1.5;}
+  .check-tip{font-size:12px;color:var(--text-muted);background:var(--card);padding:8px 10px;border-radius:6px;margin-top:8px;line-height:1.5;}
+  .check-empty{text-align:center;padding:32px;color:var(--text-muted);font-size:13px;}
+
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <span class="flag">🇺🇸</span>
+    <h1>SWT / J1 面签信息助手</h1>
+    <p>基于真实面签经历 · 数据来源：互联网和中介</p>
+  </div>
+
+  <nav class="nav" role="tablist">
+    <button class="nav-btn active" onclick="switchTab('overview')" role="tab">总览</button>
+    <button class="nav-btn" onclick="switchTab('questions')" role="tab">高频问题</button>
+    <button class="nav-btn" onclick="switchTab('cities')" role="tab">各城市详情</button>
+    <button class="nav-btn" onclick="switchTab('recommend')" role="tab">个性化推荐</button>
+  </nav>
+
+  <!-- TAB 1: OVERVIEW -->
+  <div id="tab-overview" class="tab active">
+    <div id="overview-stats" class="stat-grid"></div>
+    <div class="card">
+      <div class="card-title">各城市面签结果分布</div>
+      <div class="chart-wrap" style="height: 260px;">
+        <canvas id="cityChart"></canvas>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px;">
+      <div class="card-title">各城市通过率</div>
+      <div id="passRateBars"></div>
+    </div>
+    <div class="card" style="margin-top:16px;">
+      <div class="card-title">面签问题主题分布</div>
+      <div class="chart-wrap" style="height: 240px;">
+        <canvas id="themeChart"></canvas>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px;">
+      <div class="card-title">年级 & 学历分布</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;font-weight:600;">年级分布</div>
+          <div class="chart-wrap" style="height:180px;">
+            <canvas id="gradeChart"></canvas>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;font-weight:600;">学历分布</div>
+          <div class="chart-wrap" style="height:180px;">
+            <canvas id="eduChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: QUESTIONS -->
+  <div id="tab-questions" class="tab">
+    <div class="card">
+      <div class="card-title">TOP 高频面签问题（归类合并）</div>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">中英文问题已归类，数字代表出现次数</p>
+      <ul class="q-list" id="topQList"></ul>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <div class="card-title">问题类别权重</div>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">按类别统计所有面签问题出现频次</p>
+      <div class="chart-wrap" style="height:280px;">
+        <canvas id="categoryChart"></canvas>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <div class="card-title">必备准备清单</div>
+      <ul class="tips-list">
+        <li><strong>工作目的与地点</strong>：我去哪个城市/州工作，公司名称，职位名称（英文），工作内容简述</li>
+        <li><strong>学生身份确认</strong>：在读学校名称（英文），专业（英文），年级/毕业时间</li>
+        <li><strong>项目信息</strong>：参加的是SWT项目，如何了解到这个项目，为什么参加</li>
+        <li><strong>资金来源</strong>：谁资助（父母/奖学金），父母职业（常被问）</li>
+        <li><strong>回国计划</strong>：毕业后的打算，项目结束后的旅行计划（要具体）</li>
+        <li><strong>蓝册子/权利卡</strong>：进馆时会领到，面签时需确认已阅读</li>
+        <li><strong>社交媒体</strong>：部分签证官要求当场打开，确保账号处于公开状态</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- TAB 3: CITIES -->
+  <div id="tab-cities" class="tab">
+    <div class="city-tabs" id="cityTabs"></div>
+    <div id="cityDetails"></div>
+  </div>
+
+  <!-- TAB 4: RECOMMEND -->
+  <div id="tab-recommend" class="tab">
+    <div class="card">
+      <div class="card-title">填写你的情况，获取个性化建议</div>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px;">系统将从真实案例中匹配与你最相似的经历，无需联网，纯本地分析</p>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>面签城市</label>
+          <select id="r-city">
+            <option value="">请选择</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>年级</label>
+          <select id="r-grade">
+            <option value="">请选择</option>
+            <option value="大一">大一</option>
+            <option value="大二">大二</option>
+            <option value="大三">大三</option>
+            <option value="大四">大四</option>
+            <option value="研一">研一</option>
+            <option value="研二">研二</option>
+            <option value="研三">研三</option>
+            <option value="专科">专科</option>
+            <option value="应届生">应届生</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>学历</label>
+          <select id="r-edu">
+            <option value="">请选择</option>
+            <option value="本科">本科</option>
+            <option value="专科">专科</option>
+            <option value="研究生">研究生</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>项目类型</label>
+          <select id="r-proj">
+            <option value="">请选择</option>
+            <option value="swt">SWT（带薪工旅）</option>
+            <option value="itp">ITP（实习培训）</option>
+            <option value="j1">J1（其他）</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>白本护照</label>
+          <select id="r-baiben">
+            <option value="">不确定</option>
+            <option value="true">是（无任何签证记录）</option>
+            <option value="false">否（有其他签证记录）</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>是否二次赴美</label>
+          <select id="r-second">
+            <option value="false">否（首次）</option>
+            <option value="true">是（曾去过美国）</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:12px;">
+        <label>岗位信息（选填）</label>
+        <input type="text" id="r-job" placeholder="如 resort worker / retail associate / camp counselor">
+      </div>
+
+      <button class="btn-primary" onclick="doRecommend()">查找相似案例 →</button>
+    </div>
+
+    <div class="result-area" id="recommendResult"></div>
+  </div>
+
+</div>
+
+<button class="back-top" id="backTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<script>
+// 将 RAW_DATA 放在这里
+const RAW_DATA =
+
+// 初始化时计算所有统计数据
+let DATA_STATS = {};
+let CITY_STATS = {};
+let QUESTION_STATS = {};
+let CHECK_DATA = [];
+
+function calculateStats() {
+  let total = 0, passed = 0, checked = 0, rejected = 0;
+  const cityData = {};
+  const gradeCount = {};
+  const eduCount = {};
+  const questionFreq = {};
+
+  RAW_DATA.forEach(item => {
+    if (!item['面签城市']) return;
+
+    // 面签城市可能是数组，拆成多条分别统计
+    let cities = item['面签城市'];
+    if (!Array.isArray(cities)) cities = [cities];
+    cities = cities.filter(c => typeof c === 'string');
+    if (cities.length === 0) return;
+
+    total++;
+    const result = item['面签结果'] || '';
+
+    // 结果统计（全局只算一次）
+    let isPassed = result.includes('通过');
+    let isChecked = result.includes('check') || result.includes('Check') || result.includes('待审查');
+    let isRejected = result.includes('拒签');
+
+    if (isPassed) passed++;
+    else if (isChecked) checked++;
+    else if (isRejected) rejected++;
+
+    // 面签官描述可能是数组
+    let voDescs = item['面签官描述'];
+    if (!voDescs) voDescs = [];
+    else if (!Array.isArray(voDescs)) voDescs = [voDescs];
+    voDescs = voDescs.filter(v => typeof v === 'string');
+
+    // 对每个城市分别统计
+    cities.forEach(city => {
+      if (!cityData[city]) {
+        cityData[city] = { total: 0, passed: 0, checked: 0, rejected: 0, questions: {}, vos: [] };
+      }
+      cityData[city].total++;
+      if (isPassed) cityData[city].passed++;
+      else if (isChecked) cityData[city].checked++;
+      else if (isRejected) cityData[city].rejected++;
+
+      // 签证官描述
+      voDescs.forEach(v => cityData[city].vos.push(v));
+
+      // 问题
+      const questions = item['面签问题列表'] || [];
+      questions.forEach(q => {
+        questionFreq[q] = (questionFreq[q] || 0) + 1;
+        cityData[city].questions[q] = (cityData[city].questions[q] || 0) + 1;
+      });
+    });
+
+    // Check 案例收集
+    if (isChecked) {
+      cities.forEach(city => {
+        CHECK_DATA.push({
+          city: city,
+          interview_date: Array.isArray(item['面签日期']) ? item['面签日期'][0] : item['面签日期'],
+          post_time: item['发帖日期'] || item['post_time'],
+          grade: item['年级'],
+          edu: item['学历'],
+          proj: item['项目类型'],
+          vo: voDescs.join('、') || null,
+          questions: item['面签问题列表'] || [],
+          result: result,
+          tips: item['注意事项'],
+          summary: item['帖子摘要'],
+          second: item['是否二次赴美']
+        });
+      });
+    }
+
+    // 年级、学历
+    if (item['年级']) gradeCount[item['年级']] = (gradeCount[item['年级']] || 0) + 1;
+    if (item['学历']) eduCount[item['学历']] = (eduCount[item['学历']] || 0) + 1;
+  });
+
+  DATA_STATS = { total, passed, checked, rejected, gradeCount, eduCount, questionFreq };
+  CITY_STATS = cityData;
+  QUESTION_STATS = categorizeQuestions(questionFreq);
+}
+
+
+function categorizeQuestions(questionFreq) {
+  const categories = {
+    '工作目的/地点': 0, '项目了解': 0, '工作岗位': 0,
+    '毕业计划': 0, '年级/专业': 0, '资金来源': 0,
+    '蓝册子权利': 0, '学生身份': 0, '社交媒体': 0,
+    '出境记录': 0, '回国意向': 0
+  };
+
+  // 问题归类合并规则：关键词 -> 合并后的显示名
+  const mergeRules = [
+    { name: '你去美国哪里？工作/目的地是哪里？', keys: ['哪里', '地点', 'where', 'Where', '去哪', '目的地'], cat: '工作目的/地点' },
+    { name: '你做/在美国做什么工作？岗位是什么？', keys: ['工作', '岗位', 'work', 'job', 'position', '职位', 'company'], cat: '工作岗位' },
+    { name: '你是学生吗？现在在读？大几？', keys: ['学生', 'student', '在读', '大几', '大学', '哪个学校'], cat: '学生身份' },
+    { name: '你什么时候毕业？', keys: ['毕业', 'graduate', '什么时候毕'], cat: '毕业计划' },
+    { name: '为什么去美国？', keys: ['为什么去', '为什么要去', 'why.*america', 'why.*us', '去美国干什么', '去美国做什么', '目的'], cat: '工作目的/地点' },
+    { name: '为什么参加这个项目？怎么了解到的？', keys: ['项目', 'program', '怎么知道', '怎么了解', '了解到'], cat: '项目了解' },
+    { name: '毕业之后有什么打算？', keys: ['打算', '计划', 'plan', '之后', '以后'], cat: '毕业计划' },
+    { name: '谁资助你？你父母是做什么的？', keys: ['资助', '父母', 'sponsor', 'pay', '出资', '谁付', '家长'], cat: '资金来源' },
+    { name: '你的专业是什么？学校是哪里？', keys: ['专业', 'major', '学校'], cat: '年级/专业' },
+    { name: '你看过蓝册子/蓝色卡片吗？', keys: ['蓝册', '蓝色', 'blue', '蓝纸'], cat: '蓝册子权利' },
+    { name: '打开你的社交媒体', keys: ['社交', '社媒', 'social', '微博', '抖音', '小红书'], cat: '社交媒体' },
+    { name: '你有没有去过其他国家？', keys: ['出国', '去过', 'been', '其他国家', '出过国', '哪些国家'], cat: '出境记录' },
+    { name: '你住房怎么解决？', keys: ['住房', '住哪', '住宿', 'live', 'housing', 'accommodation'], cat: '回国意向' },
+    { name: '你在美国有家人/亲戚吗？', keys: ['家人', '亲戚', 'family', 'relative', '家属'], cat: '回国意向' },
+  ];
+
+  // 合并统计
+  const merged = {};
+  const assigned = new Set();
+
+  Object.entries(questionFreq).forEach(([q, count]) => {
+    const qLower = q.toLowerCase();
+    for (const rule of mergeRules) {
+      if (rule.keys.some(k => qLower.includes(k.toLowerCase()))) {
+        merged[rule.name] = (merged[rule.name] || 0) + count;
+        if (rule.cat && categories[rule.cat] !== undefined) {
+          categories[rule.cat] += count;
+        }
+        assigned.add(q);
+        return;
+      }
+    }
+  });
+
+  // 未归类的问题保留原样
+  Object.entries(questionFreq).forEach(([q, count]) => {
+    if (!assigned.has(q)) {
+      merged[q] = (merged[q] || 0) + count;
+    }
+  });
+
+  const topQuestions = Object.entries(merged)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 15);
+
+  return { categories, topQuestions };
+}
+
+
+// 页面加载时初始化
+window.addEventListener('DOMContentLoaded', () => {
+  calculateStats();
+  initializeCharts();
+  initializeCityTabs();
+  updateOverviewStats();
+  updateQuestionsList();
+  populateCitySelect();
+});
+
+// 更新总览统计
+function updateOverviewStats() {
+  const statsHtml = `
+    <div class="stat-card"><div class="stat-num blue">${DATA_STATS.total}</div><div class="stat-label">真实案例</div></div>
+    <div class="stat-card"><div class="stat-num green">${DATA_STATS.passed}</div><div class="stat-label">通过</div></div>
+    <div class="stat-card"><div class="stat-num amber">${DATA_STATS.checked}</div><div class="stat-label">待审查(Check)</div></div>
+    <div class="stat-card"><div class="stat-num red">${DATA_STATS.rejected}</div><div class="stat-label">拒签</div></div>
+  `;
+  document.getElementById('overview-stats').innerHTML = statsHtml;
+}
+
+// 初始化图表
+function initializeCharts() {
+  const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+  const textColor = isDark ? '#a0a0a0' : '#6b6b6b';
+  const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+
+  const CHART_COLORS = {
+    green: '#2e7d32', amber: '#b45309', red: '#b91c1c',
+    blue: '#1a5fb4', purple: '#6d28d9'
+  };
+
+  Chart.defaults.color = textColor;
+  Chart.defaults.font.family = "'Noto Sans SC', sans-serif";
+  Chart.defaults.font.size = 12;
+
+  // 城市分布图
+  const cityLabels = Object.keys(CITY_STATS).sort((a, b) => CITY_STATS[b].total - CITY_STATS[a].total);
+  const cityPassed = cityLabels.map(c => CITY_STATS[c].passed);
+  const cityChecked = cityLabels.map(c => CITY_STATS[c].checked);
+  const cityRejected = cityLabels.map(c => CITY_STATS[c].rejected);
+
+  new Chart(document.getElementById('cityChart'), {
+    type: 'bar',
+    data: {
+      labels: cityLabels,
+      datasets: [
+        { label: '通过', data: cityPassed, backgroundColor: CHART_COLORS.green },
+        { label: 'Check', data: cityChecked, backgroundColor: CHART_COLORS.amber },
+        { label: '拒签', data: cityRejected, backgroundColor: CHART_COLORS.red },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, position: 'bottom', labels: { usePointStyle: true, pointStyle: 'rect', boxWidth: 10 } } },
+      scales: {
+        x: { stacked: true, grid: { color: gridColor } },
+        y: { stacked: true, grid: { color: gridColor }, ticks: { stepSize: 5 } }
+      }
+    }
+  });
+
+  // 通过率条形图
+  const passRateBars = document.getElementById('passRateBars');
+  cityLabels.forEach(city => {
+    const stat = CITY_STATS[city];
+    const rate = stat.total > 0 ? Math.round(stat.passed / stat.total * 100) : 0;
+    const color = rate >= 80 ? CHART_COLORS.green : rate >= 60 ? CHART_COLORS.amber : CHART_COLORS.red;
+    passRateBars.innerHTML += `<div class="passrate-row">
+      <span class="passrate-city">${city}</span>
+      <div class="passrate-bar-bg"><div class="passrate-bar-fill" style="width:${rate}%;background:${color}"></div></div>
+      <span class="passrate-label">${rate}% (${stat.passed}/${stat.total})</span>
+    </div>`;
+  });
+
+  // 问题主题分布
+  const categoryData = Object.entries(QUESTION_STATS.categories)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10);
+
+  new Chart(document.getElementById('themeChart'), {
+    type: 'doughnut',
+    data: {
+      labels: categoryData.map(d => d[0]),
+      datasets: [{
+        data: categoryData.map(d => d[1]),
+        backgroundColor: ['#1a5fb4','#2e7d32','#b45309','#6d28d9','#0891b2','#be185d','#065f46','#92400e','#9333ea','#9a9a9a'],
+        borderWidth: 2,
+        borderColor: isDark ? '#1e1e1e' : '#fff'
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'right', labels: { boxWidth: 10, padding: 8, font: { size: 11 } } } }
+    }
+  });
+
+  // 年级分布
+  const gradeLabels = Object.keys(DATA_STATS.gradeCount).sort((a, b) => DATA_STATS.gradeCount[b] - DATA_STATS.gradeCount[a]);
+  const gradeData = gradeLabels.map(g => DATA_STATS.gradeCount[g]);
+
+  new Chart(document.getElementById('gradeChart'), {
+    type: 'bar',
+    data: {
+      labels: gradeLabels,
+      datasets: [{ data: gradeData, backgroundColor: CHART_COLORS.blue, borderRadius: 4 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: { x: { grid: { color: gridColor } }, y: { grid: { display: false } } }
+    }
+  });
+
+  // 学历分布
+  new Chart(document.getElementById('eduChart'), {
+    type: 'pie',
+    data: {
+      labels: Object.keys(DATA_STATS.eduCount).map(k => `${k} (${DATA_STATS.eduCount[k]})`),
+      datasets: [{
+        data: Object.values(DATA_STATS.eduCount),
+        backgroundColor: [CHART_COLORS.blue, CHART_COLORS.purple, CHART_COLORS.amber],
+        borderWidth: 2, borderColor: isDark ? '#1e1e1e' : '#fff'
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } } }
+  });
+
+  // 问题类别图
+  new Chart(document.getElementById('categoryChart'), {
+    type: 'bar',
+    data: {
+      labels: categoryData.map(d => d[0]),
+      datasets: [{
+        label: '出现次数',
+        data: categoryData.map(d => d[1]),
+        backgroundColor: [
+          CHART_COLORS.blue, CHART_COLORS.blue, CHART_COLORS.blue,
+          CHART_COLORS.green, CHART_COLORS.green,
+          CHART_COLORS.amber, CHART_COLORS.amber,
+          CHART_COLORS.purple, CHART_COLORS.purple,
+          '#0891b2', '#0891b2'
+        ],
+        borderRadius: 3,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: gridColor } },
+        y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+// 更新问题列表
+function updateQuestionsList() {
+  const qList = document.getElementById('topQList');
+  const maxCount = Math.max(...QUESTION_STATS.topQuestions.map(d => d[1]));
+
+  QUESTION_STATS.topQuestions.forEach(([q, count], i) => {
+    const pct = Math.round(count / maxCount * 100);
+    qList.innerHTML += `<li class="q-item">
+      <span style="font-size:13px;font-weight:600;color:var(--text-faint);min-width:20px;">${i+1}</span>
+      <div class="q-bar-wrap">
+        <div class="q-text">${q}</div>
+        <div class="q-bar" style="width:${pct}%"></div>
+      </div>
+      <span class="q-count">${count}次</span>
+    </li>`;
+  });
+}
+
+function initializeCityTabs() {
+  const cityTabs = document.getElementById('cityTabs');
+  const cityDetails = document.getElementById('cityDetails');
+  const cities = Object.keys(CITY_STATS).sort((a, b) => CITY_STATS[b].total - CITY_STATS[a].total);
+
+  let tabsHtml = '';
+  let detailsHtml = '';
+
+  // 城市级别的问题合并规则（和全局一样）
+  const cityMergeRules = [
+    { name: '为什么去美国？', keys: ['为什么去', '为什么要去', '去美国干什么', '去美国做什么', '目的'] },
+    { name: '你去哪里工作？工作地点？', keys: ['哪里', '地点', 'where', 'Where', '去哪'] },
+    { name: '什么时候毕业？', keys: ['毕业', 'graduate'] },
+    { name: '为什么参加这个项目？', keys: ['项目', 'program', '怎么知道', '怎么了解'] },
+    { name: '你父母是做什么的？谁资助？', keys: ['资助', '父母', 'sponsor', 'pay', '出资'] },
+    { name: '你的工作/岗位是什么？', keys: ['工作', '岗位', 'work', 'job', '职位'] },
+    { name: '你是学生吗？大几？', keys: ['学生', 'student', '在读', '大几'] },
+    { name: '看过蓝册子吗？', keys: ['蓝册', '蓝色', 'blue', '蓝纸'] },
+    { name: '专业是什么？学校？', keys: ['专业', 'major', '学校'] },
+    { name: '社交媒体/打开社媒', keys: ['社交', '社媒', 'social'] },
+    { name: '毕业之后有什么打算？', keys: ['打算', '计划', 'plan'] },
+    { name: '你有没有去过其他国家？', keys: ['出国', '去过', 'been', '出过国', '哪些国家'] },
+    { name: '你住房怎么解决？', keys: ['住房', '住哪', '住宿'] },
+    { name: '你在美国有家人/亲戚吗？', keys: ['家人', '亲戚', 'family'] },
+  ];
+
+  function mergeCityQuestions(rawQuestions) {
+    const merged = {};
+    const assigned = new Set();
+    Object.entries(rawQuestions).forEach(([q, count]) => {
+      const qLower = q.toLowerCase();
+      for (const rule of cityMergeRules) {
+        if (rule.keys.some(k => qLower.includes(k.toLowerCase()))) {
+          merged[rule.name] = (merged[rule.name] || 0) + count;
+          assigned.add(q);
+          return;
+        }
+      }
+    });
+    Object.entries(rawQuestions).forEach(([q, count]) => {
+      if (!assigned.has(q)) merged[q] = (merged[q] || 0) + count;
+    });
+    return Object.entries(merged).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  }
+
+  // 签证官分类函数：返回 { type, cssClass, label, descriptions[] }
+  function classifyVOs(vosList) {
+    const voMap = {
+      'white-male': { label: '白男', keys: ['白男', '白人帅', '白老头', '白人男', '帅白'], descs: [] },
+      'white-female': { label: '白女', keys: ['白女', '白人女', '白人美女', '白人短发'], descs: [] },
+      'bald': { label: '光头', keys: ['光头'], descs: [] },
+      'asian': { label: '亚裔', keys: ['亚裔'], descs: [] },
+      'black': { label: '黑人', keys: ['黑人', '黑'], descs: [] },
+    };
+
+    vosList.forEach(vo => {
+      if (!vo || typeof vo !== 'string') return;
+      const voLower = vo.toLowerCase();
+      let matched = false;
+      // 光头优先匹配（光头白男归到光头类）
+      if (voLower.includes('光头')) {
+        voMap['bald'].descs.push(vo);
+        matched = true;
+      } else {
+        for (const [type, info] of Object.entries(voMap)) {
+          if (type === 'bald') continue;
+          if (info.keys.some(k => voLower.includes(k))) {
+            info.descs.push(vo);
+            matched = true;
+            break;
+          }
+        }
+      }
+      if (!matched && vo.trim()) {
+        // 未分类的签证官，归到一个"其他"类
+        if (!voMap['other']) voMap['other'] = { label: '其他', keys: [], descs: [] };
+        voMap['other'].descs.push(vo);
+      }
+    });
+
+    return Object.entries(voMap)
+      .filter(([_, info]) => info.descs.length > 0)
+      .map(([cls, info]) => ({
+        cssClass: cls === 'other' ? '' : cls,
+        label: info.label,
+        count: info.descs.length,
+        descriptions: [...new Set(info.descs)] // 去重
+      }));
+  }
+
+  cities.forEach((city, index) => {
+    const stat = CITY_STATS[city];
+    const checkCount = CHECK_DATA.filter(d => d.city === city).length;
+
+    tabsHtml += `<button class="city-btn ${index === 0 ? 'active' : ''}" onclick="showCity('${city}')">${city} (${stat.total})</button>`;
+
+    // 归类合并后的高频问题
+    const cityQuestions = mergeCityQuestions(stat.questions);
+
+    // 签证官分类
+    const voTypes = classifyVOs(stat.vos);
+
+    // 问题列表 HTML
+    let questionsHtml = '';
+    if (cityQuestions.length > 0) {
+      const maxCount = cityQuestions[0][1];
+      questionsHtml = cityQuestions.map(([q, count]) => {
+        const pct = maxCount > 0 ? Math.round(count / maxCount * 100) : 0;
+        return `<li class="q-item">
+          <div class="q-bar-wrap">
+            <div class="q-text">${q}</div>
+            <div class="q-bar" style="width:${pct}%"></div>
+          </div>
+          <span class="q-count">${count}次</span>
+        </li>`;
+      }).join('');
+    } else {
+      questionsHtml = '<li style="color:var(--text-muted);font-size:13px;padding:8px 0;">暂无问题数据</li>';
+    }
+
+    // 签证官标签 HTML（可点击）
+    let voTagsHtml = '';
+    if (voTypes.length > 0) {
+      voTagsHtml = voTypes.map(vo => {
+        const descsEscaped = vo.descriptions.map(d => d.replace(/'/g, "\\&#39;").replace(/"/g, '&quot;')).join('|||');
+        return `<span class="vo-tag ${vo.cssClass}" style="cursor:pointer;" onclick="showVODetail('${vo.label}', '${descsEscaped}', ${vo.count})" title="点击查看描述汇总">${vo.label} (${vo.count})</span>`;
+      }).join('');
+    } else {
+      voTagsHtml = '<span style="color:var(--text-muted);font-size:12px;">暂无数据</span>';
+    }
+
+    detailsHtml += `
+      <div id="city-${city}" class="city-detail ${index === 0 ? 'active' : ''}">
+        ${checkCount > 0 ? `<button class="check-btn" onclick="openCheckModal('${city}')"><span class="check-dot"></span>查看 ${checkCount} 条 Check 案例</button>` : ''}
+        <div class="stat-grid">
+          <div class="stat-card"><div class="stat-num blue">${stat.total}</div><div class="stat-label">总案例</div></div>
+          <div class="stat-card" ${stat.passed === 0 ? 'style="opacity:0.4;"' : ''}><div class="stat-num ${stat.passed > 0 ? 'green' : ''}">${stat.passed}</div><div class="stat-label">通过</div></div>
+          <div class="stat-card" ${stat.checked === 0 ? 'style="opacity:0.4;"' : ''}><div class="stat-num ${stat.checked > 0 ? 'amber' : ''}">${stat.checked}</div><div class="stat-label">Check</div></div>
+          <div class="stat-card" ${stat.rejected === 0 ? 'style="opacity:0.4;"' : ''}><div class="stat-num ${stat.rejected > 0 ? 'red' : ''}">${stat.rejected}</div><div class="stat-label">拒签</div></div>
+        </div>
+        <div class="two-col">
+          <div class="card">
+            <div class="card-title">高频问题</div>
+            <ul class="q-list">${questionsHtml}</ul>
+          </div>
+          <div>
+            <div class="card">
+              <div class="card-title">签证官特征</div>
+              <div class="vo-tags">${voTagsHtml}</div>
+            </div>
+            <div class="card" style="margin-top:12px;">
+              <div class="card-title">${city}特别注意</div>
+              <ul class="tips-list">${getCityTips(city)}</ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+
+  cityTabs.innerHTML = tabsHtml;
+  cityDetails.innerHTML = detailsHtml;
+}
+
+// 显示签证官描述汇总弹窗
+function showVODetail(label, descsStr, count) {
+  const descriptions = descsStr.split('|||').filter(Boolean);
+  const overlay = document.getElementById('checkOverlay');
+  const title = document.getElementById('checkTitle');
+  const body = document.getElementById('checkBody');
+
+  title.textContent = `${label} · 签证官描述汇总（共${count}次出现）`;
+  body.innerHTML = `
+    <div style="padding:8px 0;">
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">以下是面签者对该类型签证官的原始描述（已去重）：</div>
+      ${descriptions.map((d, i) => `
+        <div style="padding:10px 14px;margin-bottom:8px;background:var(--bg);border-radius:8px;font-size:13px;border-left:3px solid var(--accent);">
+          <span style="color:var(--text-faint);margin-right:8px;">${i + 1}.</span>${d}
+        </div>
+      `).join('')}
+    </div>
+  `;
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+// 获取城市特别提示
+function getCityTips(city) {
+  const tips = {
+    '广州': [
+      '丰巢存包（马路对面），4小时约10元，比门口便宜',
+      '7:30开门，建议7:15前排队，千万不能迟到',
+      '可在地铁B1口市民服务中心上厕所',
+      '进馆不允许带手机，可放在酒店',
+      '亚裔窗口被拒率略高，可技巧性换队（如称去厕所）'
+    ],
+    '北京': [
+      '不看预约时间，只按到场排队顺序，早到早面',
+      '照片要求极严格，需"原汁原味"不修图，带50元现金以备馆内补拍',
+      '亮马桥地铁B口出来，对面骑单车可到达',
+      '2025年起北京审查明显变严，社媒核查更频繁',
+      '被check后需在24小时内将社媒设为公开并发邮件至指定地址'
+    ],
+    '武汉': [
+      '按预约时间进场，只允许提前30分钟排队',
+      '案例较少，但整体通过率较好',
+      '应届毕业生被追问回国意向，需充分准备',
+      '签证官有时会聊工作地点相关话题，可自然回应'
+    ],
+    '上海': [
+      '唯一拒签案例因英语听力差，没听懂蓝色卡片相关问题',
+      '听不懂务必请签证官重复或用中文说，切勿乱答',
+      '旁边行李寄存很方便，护照签回来寄送到浙江很快',
+      '部分签证官会直接说中文，可用中文流利回答'
+    ],
+    '沈阳': [
+      '样本量极少，目前全部为check（待审查），最终均获批',
+      '沈阳领区覆盖东北地区，签证官全程英文问题为主',
+      '问题包括：工作计划、工作地点介绍、父母职业、毕业时间',
+      'check不等于拒签，耐心等待社媒审查即可'
+    ]
+  };
+
+  return (tips[city] || ['暂无特别提示']).map(tip => `<li>${tip}</li>`).join('');
+}
+
+// 填充城市选择框
+function populateCitySelect() {
+  const citySelect = document.getElementById('r-city');
+  const cities = Object.keys(CITY_STATS).sort((a, b) => CITY_STATS[b].total - CITY_STATS[a].total);
+  cities.forEach(city => {
+    citySelect.innerHTML += `<option value="${city}">${city}</option>`;
+  });
+}
+
+// 切换标签页
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// 显示城市详情
+function showCity(city) {
+  document.querySelectorAll('.city-detail').forEach(d => d.classList.remove('active'));
+  document.querySelectorAll('.city-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`city-${city}`).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// 回到顶部按钮
+window.addEventListener('scroll', () => {
+  const btn = document.getElementById('backTop');
+  btn.classList.toggle('show', window.scrollY > 300);
+});
+
+// 推荐功能
+function calcScore(user, caseData) {
+  let score = 0;
+  if (user.city && caseData['面签城市']) {
+    if (user.city === caseData['面签城市']) score += 40;
+  }
+  const gradeMap = { '大一':1,'大二':2,'大三':3,'大四':4,'应届生':4,'研一':5,'研二':6,'研三':7,'专科':2 };
+  if (user.grade && caseData['年级']) {
+    const d = Math.abs((gradeMap[user.grade]||0) - (gradeMap[caseData['年级']]||0));
+    score += d === 0 ? 15 : d === 1 ? 10 : d === 2 ? 5 : 0;
+  }
+  if (user.edu && caseData['学历'] && user.edu === caseData['学历']) score += 10;
+  if (user.proj && caseData['项目类型'] && user.proj === caseData['项目类型']) score += 10;
+  if (user.baiben !== '' && caseData['白本状态'] !== null) {
+    if ((user.baiben === 'true') === caseData['白本状态']) score += 8;
+  }
+  if (user.second !== '' && caseData['是否二次赴美'] !== null) {
+    if ((user.second === 'true') === caseData['是否二次赴美']) score += 5;
+  }
+  const qs = caseData['面签问题列表'] || [];
+  if (qs.length >= 3) score += 5;
+  if (caseData['注意事项']) score += 3;
+  return Math.min(score, 100);
+}
+
+function doRecommend() {
+  const user = {
+    city: document.getElementById('r-city').value,
+    grade: document.getElementById('r-grade').value,
+    edu: document.getElementById('r-edu').value,
+    proj: document.getElementById('r-proj').value,
+    baiben: document.getElementById('r-baiben').value,
+    second: document.getElementById('r-second').value,
+    job: document.getElementById('r-job').value.trim(),
+  };
+
+  const validData = RAW_DATA.filter(d => d['面签城市'] && (d['面签问题列表']?.length > 0 || d['注意事项']));
+  const scored = validData.map(d => ({ ...d, _score: calcScore(user, d) }))
+    .sort((a, b) => b._score - a._score)
+    .filter(d => d._score >= 10)
+    .slice(0, 5);
+
+  const resultArea = document.getElementById('recommendResult');
+  if (!scored.length) {
+    resultArea.innerHTML = '<div class="no-result">未找到匹配案例，请尝试只填写城市再查询</div>';
+    return;
+  }
+
+  const cityData = CITY_STATS[user.city];
+  let summaryHtml = '';
+  if (cityData && user.city) {
+    const rate = Math.round(cityData.passed / cityData.total * 100);
+    const rateColor = rate >= 80 ? 'var(--green)' : rate >= 60 ? 'var(--amber)' : 'var(--red)';
+    summaryHtml = `<div class="summary-box">
+      <h3>📊 ${user.city}面签概况</h3>
+      <ul>
+        <li>案例总数：${cityData.total}条，通过率：<strong style="color:${rateColor}">${rate}%</strong>（${cityData.passed}通过 / ${cityData.checked}Check / ${cityData.rejected}拒签）</li>
+        ${user.grade ? `<li>您是${user.grade}${user.edu ? `（${user.edu}）` : ''}，对应案例中大四学生会被问更多问题，大一到大三相对轻松</li>` : ''}
+        ${user.proj ? `<li>项目类型：${user.proj.toUpperCase()}，整体通过率较高，认真准备基本没问题</li>` : ''}
+      </ul>
+    </div>`;
+  }
+
+  const CHART_COLORS = {
+    green: '#2e7d32', amber: '#b45309', red: '#b91c1c',
+    blue: '#1a5fb4', purple: '#6d28d9'
+  };
+
+  let casesHtml = scored.map((d, i) => {
+    const resultBadge = d['面签结果'] === '通过' ? `<span class="badge badge-green">通过</span>` :
+      d['面签结果'] === '拒签' ? `<span class="badge badge-red">拒签</span>` :
+      d['面签结果'] ? `<span class="badge badge-amber">${d['面签结果']}</span>` : '';
+    const scoreBg = d._score >= 70 ? CHART_COLORS.green : d._score >= 45 ? CHART_COLORS.amber : '#9a9a9a';
+    const qs = d['面签问题列表'] || [];
+    const qHtml = qs.length ? `<div class="case-qs"><p>被问到的问题（${qs.length}个）</p><ul>${qs.slice(0,8).map(q => `<li>${q}</li>`).join('')}${qs.length > 8 ? `<li style="color:var(--text-faint)">...还有${qs.length-8}个问题</li>` : ''}</ul></div>` : '';
+    const tipsHtml = d['注意事项'] ? `<div class="case-tips">💡 ${d['注意事项'].slice(0,120)}${d['注意事项'].length > 120 ? '...' : ''}</div>` : '';
+    return `<div class="case-card">
+      <div class="case-header">
+        <div style="font-size:14px;font-weight:600;color:var(--text);max-width:70%">${d['帖子摘要']?.slice(0,50) || d['面签城市'] + '面签经历'}...</div>
+        <span class="case-score" style="background:${scoreBg};color:#fff">${Math.round(d._score)}分匹配</span>
+      </div>
+      <div class="case-meta">
+        ${d['面签城市'] ? `<span>📍 ${d['面签城市']}</span>` : ''}
+        ${d['面签日期'] ? `<span>📅 ${d['面签日期']}</span>` : ''}
+        ${d['年级'] ? `<span>🎓 ${d['年级']}</span>` : ''}
+        ${d['学历'] ? `<span>📚 ${d['学历']}</span>` : ''}
+        ${d['面签官描述'] ? `<span>👤 ${d['面签官描述']}</span>` : ''}
+        ${d['白本状态'] !== null ? `<span>护照: ${d['白本状态'] ? '白本' : '有记录'}</span>` : ''}
+        ${resultBadge}
+      </div>
+      ${qHtml}
+      ${tipsHtml}
+    </div>`;
+  }).join('');
+
+  const cityQueHtml = buildCityQuestions(user.city, user.grade);
+
+  resultArea.innerHTML = summaryHtml + casesHtml + cityQueHtml;
+  resultArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function buildCityQuestions(city, grade) {
+  if (!city || !CITY_STATS[city]) return '';
+
+  const questions = Object.entries(CITY_STATS[city].questions)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+    .map(([q]) => q);
+
+  if (!questions.length) return '';
+
+  const gradeNote = grade === '大四' || grade === '应届生' ? `<div class="case-tips" style="margin-top:8px;">⚠️ ${grade}同学注意：问题往往比低年级多，需额外准备「毕业后打算」「论文/研究」「回国约束力」等问题</div>` : '';
+
+  return `<div class="card" style="margin-top:16px;">
+    <div class="card-title">📍 ${city}常见面签问题（据案例汇总）</div>
+    <ul class="q-list">${questions.map((q, i) => `<li class="q-item">
+      <div class="q-bar-wrap">
+        <div class="q-text">${q}</div>
+        <div class="q-bar" style="width:${Math.max(30, 100 - i*10)}%"></div>
+      </div>
+    </li>`).join('')}</ul>
+    ${gradeNote}
+  </div>`;
+}
+
+// Check案例弹窗
+function openCheckModal(city){
+  const cases = CHECK_DATA.filter(d => d.city === city);
+  document.getElementById('checkTitle').textContent = city + ' · Check 案例（共' + cases.length + '条）';
+  const body = document.getElementById('checkBody');
+
+  if(!cases.length){
+    body.innerHTML='<div class="check-empty">暂无该城市 Check 案例数据</div>';
+    document.getElementById('checkOverlay').classList.add('open');
+    document.body.style.overflow='hidden';
+    return;
+  }
+
+  body.innerHTML = cases.map((d, i) => {
+    const meta = [
+      d.grade ? '🎓 ' + d.grade : null,
+      d.edu ? '📚 ' + d.edu : null,
+      d.proj ? '📋 ' + d.proj.toUpperCase() : null,
+      d.vo ? '👤 ' + d.vo : null,
+      d.second ? '二次赴美' : null
+    ].filter(Boolean);
+
+    const metaHtml = meta.length ? `<div class="check-meta">${meta.map(m => `<span>${m}</span>`).join('')}</div>` : '';
+
+    const qHtml = d.questions && d.questions.length
+      ? `<div class="check-qs"><div class="check-qs-lbl">被问到的问题（${d.questions.length}个）</div><ul>${d.questions.map(q => `<li>${q}</li>`).join('')}</ul></div>`
+      : `<div class="check-qs-lbl" style="color:var(--text-faint);font-size:11px;margin:4px 0;">问题未记录</div>`;
+
+    return `<div class="check-case">
+      <div class="check-hd"><span style="font-size:13px;font-weight:600">案例 ${i + 1}</span><span class="badge badge-amber">${d.result}</span></div>
+      ${metaHtml}
+      <div class="check-summary">${d.summary || ''}</div>
+      ${qHtml}
+      ${d.tips ? `<div class="check-tip">💡 ${d.tips}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  document.getElementById('checkOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+function closeCheck(){
+  document.getElementById('checkOverlay').classList.remove('open');
+  document.body.style.overflow='';
+}
+
+document.addEventListener('keydown', e => {if(e.key === 'Escape') closeCheck();});
+</script>
+
+<div class="check-overlay" id="checkOverlay" onclick="if(event.target===this){closeCheck();}">
+  <div class="check-modal">
+    <div class="check-hd check-modal-hd">
+      <div class="check-modal-title" id="checkTitle"></div>
+      <button class="check-close" onclick="closeCheck()">×</button>
+    </div>
+    <div id="checkBody"></div>
+  </div>
+</div>
+
+<footer style="text-align: center; padding: 20px; color: #666; font-size: 12px;">
+    <p>© 2026 作者：代码两角鲤 | 联系方式WX：Y1321847667</p>
+</footer>
+</body>
+</html>
